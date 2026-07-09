@@ -1,4 +1,5 @@
 flask
+flask-cors
 transformers
 google-generativeai
 torch
@@ -9,3 +10,6 @@ marked
 python-dotenv
 pymupdf
 flask-limiter
+faiss-cpu
+sentence-transformers
+PyJWT

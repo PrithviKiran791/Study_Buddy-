@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 4%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 4%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.08;
+    --ring: 0 0% 83%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .glass-nav {
+    @apply sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60;
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-border bg-card/80 backdrop-blur-xl shadow-sm;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:border-border/80 hover:bg-accent/50 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-wider text-primary-foreground shadow-[0_0_15px_rgba(0,0,0,0.08)] transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(0,0,0,0.12)] dark:shadow-[0_0_15px_rgba(255,255,255,0.1)] dark:hover:shadow-[0_0_25px_rgba(255,255,255,0.15)];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-transparent px-6 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all duration-300 hover:border-border/80 hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .input-field {
+    @apply flex h-10 w-full rounded-xl border border-input bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .textarea-field {
+    @apply w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .hero-glow {
+    @apply pointer-events-none absolute inset-0 overflow-hidden;
+  }
+
+  .hero-glow::before {
+    content: '';
+    @apply absolute -top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-white/5 blur-3xl dark:bg-white/[0.03];
+  }
+
+  .markdown-content {
+    @apply max-w-none;
+  }
+
+  .markdown-content h1 {
+    @apply mb-4 mt-6 text-3xl font-bold text-foreground;
+  }
+
+  .markdown-content h2 {
+    @apply mb-3 mt-5 text-2xl font-bold text-foreground;
+  }
+
+  .markdown-content h3 {
+    @apply mb-2 mt-4 text-xl font-semibold text-foreground;
+  }
+
+  .markdown-content p {
+    @apply mb-4 leading-relaxed text-muted-foreground;
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    @apply mb-4 ml-6 text-muted-foreground;
+  }
+
+  .markdown-content li {
+    @apply mb-2;
+  }
+
+  .markdown-content code {
+    @apply rounded bg-muted px-2 py-1 text-sm text-foreground;
+  }
+
+  .markdown-content pre {
+    @apply mb-4 overflow-x-auto rounded-xl border border-border bg-muted p-4;
+  }
+
+  .markdown-content pre code {
+    @apply bg-transparent p-0 text-sm text-foreground;
+  }
+
+  .markdown-content blockquote {
+    @apply my-4 border-l-4 border-border pl-4 italic text-muted-foreground;
+  }
+
+  .markdown-content table {
+    @apply mb-4 w-full border-collapse;
+  }
+
+  .markdown-content th {
+    @apply border border-border bg-muted p-3 text-left font-semibold text-foreground;
+  }
+
+  .markdown-content td {
+    @apply border border-border p-3 text-muted-foreground;
+  }
+
+  .markdown-content a {
+    @apply font-semibold text-foreground hover:underline;
+  }
+
+  .markdown-content img {
+    @apply my-4 rounded-xl;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded bg-border;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}

@@ -1,125 +1,263 @@
 # 🎓 AI Study Buddy
 
-A premium, state-of-the-art AI-powered study companion that helps you research topics, summarize articles, generate challenge questions, and create custom study plans. 
+Your Personal AI Learning Assistant - Learn Smarter, Not Harder
 
-Built with an elegant Glassmorphism UI and powered by Google's latest Gemini AI models, this tool turns your browser into a full-fledged intelligent tutor.
-
-![AI Study Buddy Banner](https://img.shields.io/badge/Status-Active-success.svg?style=for-the-badge) ![Gemini Integration](https://img.shields.io/badge/AI-Google_Gemini_2.5-blue?style=for-the-badge&logo=google) ![Flask Backend](https://img.shields.io/badge/Backend-Flask-black?style=for-the-badge&logo=flask)
-
----
+A modern, full-stack AI-powered study platform featuring a React SPA frontend and Flask REST API backend. No authentication required - instant access to powerful AI learning tools.
 
 ## ✨ Features
 
-- 🧬 **Topic Researcher**: Deep-dive into any educational subject with structured, well-formatted markdown articles.
-- 🌐 **Web-Search QA**: Get real-time, AI-synthesized answers to complex questions.
-- 📇 **Interactive Flashcards**: Test your knowledge using beautiful, animated 3D flip-cards.
-- 💡 **Smart Summarizer 2.0**: Instantly summarize giant blocks of text or directly summarize content from web URLs.
-- 📅 **Study Planner**: Automatically generate organized, structured Markdown study schedules with clear milestones.
-- ❓ **Question Generator**: Challenge yourself with high-quality AI-generated questions based on your study text.
-- 🎓 **AI Tutor (Q&A)**: Extract direct answers from specific paragraphs seamlessly.
-- 🎨 **Premium UI/UX**: Built with a sleek dark-mode Glassmorphism design system, smooth micro-animations, and responsive layouts.
-- 📄 **Robust Markdown Rendering**: Fully custom client-side Markdown rendering engine that beautifully structures lists, paragraphs, quotes, and code blocks.
+### 🤖 AI-Powered Tools
 
----
+1. **AI Tutor** - Conversational AI assistant for instant help
+2. **PDF Chat** - Upload PDFs and chat using RAG (Retrieval Augmented Generation)
+3. **Smart Summarizer** - Summarize text, articles, and web pages
+4. **Research Assistant** - Generate comprehensive research reports
+5. **Flashcards Generator** - Create interactive flashcards with flip animations
+6. **Visual QA** - Upload images and ask questions (diagrams, charts, equations)
+7. **Study Planner** - Generate personalized study schedules
 
-## 🏗️ System Architecture
+### 🎨 Modern UI/UX
 
-The AI Study Buddy is built on a resilient, dual-layered architecture designed to prioritize speed, reliability, and user experience:
+- **Glassmorphism Design** - Premium black & white theme
+- **Smooth Animations** - Framer Motion throughout
+- **Responsive** - Works on desktop, tablet, and mobile
+- **Instant Access** - No login required
+- **Landing Page Hub** - All features accessible from home
 
-- **Frontend Layer (Client-Side)**: 
-  - A responsive web interface built with vanilla HTML, CSS, and JS.
-  - Features a custom Glassmorphism UI and dynamic DOM updates for smooth interactions.
-  - Implements a robust client-side Markdown rendering engine that formats AI outputs beautifully into structured paragraphs, lists, and code blocks.
-- **Backend Server (Flask)**: 
-  - A lightweight, fast Python Flask application handling routing, API requests, and file processing (e.g., PDF text extraction).
-  - Integrates **Flask-Limiter** for rate limiting to prevent API abuse and ensure server stability.
-- **AI Integration Layer (Cloud & Local)**:
-  - **Primary AI (Google Gemini)**: Connects dynamically to Google's latest generative AI models (e.g., `gemini-2.5-flash`) for lightning-fast text generation, summarization, and reasoning.
-  - **Local Fallback Models (Hugging Face)**: If the primary API fails, the backend seamlessly falls back to pre-trained local NLP models (T5, BART, DistilBERT) ensuring the app remains functional.
-
----
-
-## 💻 Tech Stack
+## 🚀 Tech Stack
 
 ### Frontend
-- **HTML5 & CSS3**: Vanilla CSS with a custom Dark Mode Glassmorphism design system.
-- **JavaScript (ES6+)**: Vanilla JS for DOM Manipulation and asynchronous requests.
-- **Markdown Rendering**: Client-side parsing to display rich text formats safely.
+- React 19
+- Vite
+- Tailwind CSS
+- Framer Motion
+- React Router
+- Axios
+- React Hot Toast
+- React Markdown
+- Lucide React Icons
 
 ### Backend
-- **Python 3.x**: Core backend language.
-- **Flask**: Web application framework.
-- **Flask-Limiter**: Rate limiting.
-- **BeautifulSoup4 & Requests**: Web scraping for URL content extraction.
-- **PyMuPDF (fitz)**: Efficient PDF document parsing.
+- Flask
+- Flask-CORS
+- Google Gemini AI
+- HuggingFace Transformers
+- PyMuPDF
+- FAISS (Vector Database)
+- Sentence Transformers
+- BeautifulSoup4
 
-### AI & Machine Learning
-- **Google Generative AI SDK** (`google-generativeai`): Interacting with Gemini models.
-- **Hugging Face Transformers** (`transformers`, `torch`): Running local NLP fallback models (`valhalla/t5-base-qg-hl`, `facebook/bart-large-cnn`, `distilbert-base-uncased-distilled-squad`).
+## 📦 Installation
 
----
+### Prerequisites
+- Python 3.8+
+- Node.js 18+
+- npm or yarn
 
-## 🛠️ Installation & Setup
+### Backend Setup
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/tejaswalikar007/ai-study-Buddy-TejasSW.git
-   cd ai-study-Buddy-TejasSW
-   ```
-
-2. **Create and activate a virtual environment (Recommended)**:
-   ```bash
-   python -m venv .venv
-   # Windows:
-   .\.venv\Scripts\activate
-   # Mac/Linux:
-   source .venv/bin/activate
-   ```
-
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure your API Key (Security Best Practice)**:
-   Create a file named `.env` in the root of the project.
-   Add your Google Gemini API key to it:
-   ```env
-   GEMINI_API_KEY="your_api_key_here"
-   ```
-   > ⚠️ **IMPORTANT**: Never hardcode your API key into `config.py` or commit the `.env` file to GitHub to prevent leaks!
-
----
-
-## 🚀 Running the App
-
-Start the Flask server:
 ```bash
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Create .env file
+echo "GEMINI_API_KEY=your_api_key_here" > .env
+echo "SECRET_KEY=your_secret_key" >> .env
+
+# Run Flask server
 python app.py
 ```
 
-Open your browser and navigate to:
-[http://127.0.0.1:5000](http://127.0.0.1:5000)
+Backend runs on `http://localhost:5000`
 
----
+### Frontend Setup
 
-## ⚙️ How it Works under the Hood
-
-- **Dynamic Model Resolution**: The application dynamically probes for the latest supported Gemini models (e.g., `gemini-2.5-flash`, `gemini-2.0-flash`) ensuring your application never crashes from deprecated endpoints.
-- **Robust Client-Side Markdown**: AI outputs are securely funneled through hidden `<textarea>` decoders to preserve structural white space, which is then compiled into gorgeous structured HTML in real-time.
-- **Local Fallbacks**: Hugging Face transformer models provide localized fallback capabilities if the cloud API goes down.
-
----
-
-## 📦 Publishing Updates to GitHub
-
-This repository includes a completely automated deployment script to make pushing your code to GitHub foolproof and secure.
-
-Simply run:
 ```bash
-python push_to_github.py
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
-This script will automatically format the `.gitignore`, strip tracked `.env` variables to protect your API keys, commit the changes, and force push the updates directly to the `main` branch.
+
+Frontend runs on `http://localhost:5173`
+
+## 🔑 API Key Setup
+
+Get your free Gemini API key:
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create a new API key
+3. Add it to your `.env` file
+
+## 🏗️ Project Structure
+
+```
+Study_assistant/
+├── app.py                 # Flask REST API
+├── rag_engine.py          # PDF RAG system
+├── config.py              # Configuration
+├── requirements.txt       # Python dependencies
+├── .env                   # Environment variables
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/          # API services
+│   │   ├── components/   # Reusable components
+│   │   ├── pages/        # Page components
+│   │   ├── layouts/      # Layout components
+│   │   ├── App.jsx       # Main app
+│   │   └── main.jsx      # Entry point
+│   ├── package.json
+│   └── vite.config.js
+│
+└── templates/            # Old Jinja templates (deprecated)
+```
+
+## 🎯 Usage
+
+1. **Start the Backend**
+   ```bash
+   python app.py
+   ```
+
+2. **Start the Frontend**
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. **Open Browser**
+   Navigate to `http://localhost:5173`
+
+4. **Start Learning!**
+   - Click any feature card on the landing page
+   - No login required - instant access to all tools
+
+## 🔌 API Endpoints
+
+### Core APIs
+- `POST /api/chat` - AI Tutor conversation
+- `POST /api/upload-pdf` - Upload & index PDF
+- `POST /api/pdf-chat` - Chat with uploaded PDF
+- `POST /api/summarize` - Summarize text/URL
+- `POST /api/research` - Generate research report
+- `POST /api/flashcards` - Generate flashcards
+- `POST /api/visual-qa` - Visual question answering
+- `POST /api/study-plan` - Generate study plan
+- `GET /api/health` - Health check
+
+## 🎨 Design System
+
+### Colors
+- **Primary**: White (#ffffff)
+- **Accent**: Sky Blue (#0ea5e9)
+- **Background**: Black (#000000)
+- **Secondary**: Zinc grays
+
+### Components
+- Glass Cards with backdrop blur
+- Rounded corners (rounded-2xl)
+- Smooth transitions (300ms)
+- Hover effects with glow
+- Loading spinners
+- Toast notifications
+
+## 🔥 Key Features Explained
+
+### PDF Chat (RAG)
+- Upload PDF documents
+- Automatic text extraction and chunking
+- FAISS vector indexing
+- Semantic search with embeddings
+- Context-aware responses
+
+### Smart Summarizer
+- Supports plain text input
+- Fetch and summarize URLs
+- AI-powered bullet-point summaries
+- Copy and download results
+
+### Flashcards
+- AI-generated Q&A pairs
+- Interactive flip animation
+- Navigation controls
+- Shuffle feature
+- Progress tracking
+
+### Visual QA
+- Image upload support
+- Multimodal AI analysis
+- Works with diagrams, charts, equations
+- Detailed educational explanations
+
+## 🛠️ Development
+
+### Frontend Development
+```bash
+cd frontend
+npm run dev      # Development server
+npm run build    # Production build
+npm run preview  # Preview build
+npm run lint     # Lint code
+```
+
+### Backend Development
+```bash
+# Run with auto-reload
+python app.py
+
+# The Flask server runs in debug mode by default
+```
+
+## 📱 Responsive Design
+
+- **Mobile First** - Optimized for small screens
+- **Tablet** - Adaptive layout
+- **Desktop** - Full feature set
+- **Touch Friendly** - Large tap targets
+
+## 🚧 Roadmap
+
+- [ ] Add more AI models
+- [ ] Export options (PDF, DOCX)
+- [ ] Voice input/output
+- [ ] Multi-language support
+- [ ] Offline mode
+- [ ] Progress tracking
+- [ ] Spaced repetition for flashcards
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Google Gemini AI for powerful language models
+- HuggingFace for transformer models
+- React team for amazing framework
+- Tailwind CSS for utility-first styling
+- Framer Motion for animations
+
+## 📧 Support
+
+For issues and questions:
+- Open an issue on GitHub
+- Check existing documentation
+- Review API responses for error details
 
 ---
-*Created and maintained by Tejas Walikar.*
+
+**Made with ❤️ for learners everywhere**
+
+Start learning smarter today with AI Study Buddy! 🚀
