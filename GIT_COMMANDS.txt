@@ -1,0 +1,173 @@
+========================================
+AI STUDY BUDDY - GIT COMMANDS
+========================================
+
+Repository URL: https://github.com/PrithviKiran791/Study_Buddy-
+
+========================================
+OPTION 1: Use Automated Script (Easiest)
+========================================
+
+Simply double-click:
+    push_to_github.bat
+
+Follow the prompts to push your code.
+
+========================================
+OPTION 2: Manual Commands (Copy & Paste)
+========================================
+
+Open Command Prompt or PowerShell in the project directory and run these commands:
+
+1. CHECK GIT STATUS
+------------------
+git status
+
+
+2. ADD ALL FILES
+------------------
+git add .
+
+
+3. COMMIT CHANGES
+------------------
+git commit -m "Refactor: Transform to React SPA with no-auth landing page hub - Remove authentication, add glassmorphism UI, 7 AI features"
+
+
+4. SETUP REMOTE REPOSITORY
+------------------
+git remote remove origin
+git remote add origin https://github.com/PrithviKiran791/Study_Buddy-.git
+git remote -v
+
+
+5. PUSH TO GITHUB (Choose ONE)
+------------------
+
+Option A - Normal Push (if no conflicts):
+git push -u origin main
+
+Option B - Push to master branch (if main doesn't exist):
+git push -u origin master
+
+Option C - Force Push (overwrites remote, use carefully):
+git push -u origin main --force
+
+
+========================================
+IF YOU GET ERRORS
+========================================
+
+ERROR: "failed to push some refs"
+SOLUTION:
+    git pull origin main --rebase
+    git push -u origin main
+
+ERROR: "Authentication failed"
+SOLUTION:
+    1. Go to GitHub → Settings → Developer settings → Personal access tokens
+    2. Generate new token (classic)
+    3. Select "repo" scope
+    4. Use token as password when prompted
+
+ERROR: "remote origin already exists"
+SOLUTION:
+    git remote remove origin
+    git remote add origin https://github.com/PrithviKiran791/Study_Buddy-.git
+
+ERROR: "divergent branches"
+SOLUTION:
+    git config pull.rebase false
+    git pull origin main --allow-unrelated-histories
+    git push -u origin main
+
+========================================
+VERIFY AFTER PUSHING
+========================================
+
+1. Open browser and visit:
+   https://github.com/PrithviKiran791/Study_Buddy-
+
+2. Check that all files are present:
+   - app.py
+   - requirements.txt
+   - rag_engine.py
+   - frontend/ directory
+   - README.md
+   - .gitignore
+
+3. Verify .env is NOT present (should be ignored)
+
+========================================
+QUICK REFERENCE - FUTURE UPDATES
+========================================
+
+To push future changes:
+
+git status
+git add .
+git commit -m "Your change description"
+git push origin main
+
+========================================
+CONFIGURE GIT (First Time Setup)
+========================================
+
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+git config --global init.defaultBranch main
+
+========================================
+BRANCH COMMANDS
+========================================
+
+Check current branch:
+    git branch
+
+Create new branch:
+    git checkout -b feature-name
+
+Switch branch:
+    git checkout main
+
+Push new branch:
+    git push -u origin feature-name
+
+========================================
+VIEW HISTORY
+========================================
+
+View commits:
+    git log --oneline
+
+View changes:
+    git diff
+
+View remote:
+    git remote -v
+
+========================================
+UNDO COMMANDS (Use Carefully!)
+========================================
+
+Undo last commit (keep changes):
+    git reset --soft HEAD~1
+
+Discard all local changes:
+    git checkout -- .
+
+Remove untracked files:
+    git clean -fd
+
+========================================
+CLONE ON ANOTHER MACHINE
+========================================
+
+To download this project on another computer:
+
+git clone https://github.com/PrithviKiran791/Study_Buddy-.git
+cd Study_Buddy-
+
+Then follow GETTING_STARTED.md
+
+========================================
