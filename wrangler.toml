@@ -19,5 +19,5 @@ run_worker_first = true
 
 [vars]
 DEFAULT_MODEL = "gemini"
-GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 FIREBASE_PROJECT_ID = "studyassistant-26fb6"

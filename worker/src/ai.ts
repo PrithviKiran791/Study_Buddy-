@@ -9,18 +9,31 @@ export const STUDY_BUDDY_SYSTEM_PROMPT =
 
 export async function callGemini(
   apiKey: string,
-  model = 'gemini-3.6-flash',
+  model = 'gemini-3.5-flash-lite',
   prompt: string,
   systemInstruction?: string,
   inlineImage?: { mimeType: string; base64: string }
 ): Promise<string> {
   // Normalize legacy/deprecated model names
   let normalizedModel = model;
-  if (model.includes('1.5') || model.includes('2.0') || model === 'gemini') {
-    normalizedModel = 'gemini-3.6-flash';
+  if (
+    model.includes('1.5') ||
+    model.includes('2.0') ||
+    model.includes('2.5') ||
+    model === 'gemini'
+  ) {
+    normalizedModel = 'gemini-3.5-flash-lite';
   }
 
-  const candidateModels = Array.from(new Set([normalizedModel, 'gemini-3.6-flash', 'gemini-2.5-flash-lite'])).filter(Boolean);
+  const candidateModels = Array.from(
+    new Set([
+      normalizedModel,
+      'gemini-3.5-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+    ])
+  ).filter(Boolean);
 
   let lastError: Error | null = null;
   for (const candidate of candidateModels) {
@@ -59,9 +72,12 @@ export async function callGemini(
 
       if (!response.ok) {
         const errorText = await response.text();
-        // If 404 model not found, try next candidate
-        if (response.status === 404 && candidate !== candidateModels[candidateModels.length - 1]) {
-          console.warn(`[AI] Gemini model ${candidate} returned 404, trying next candidate...`);
+        // If 404 (not found), 429 (rate-limit/quota), or 503 (overload), fallback to next candidate
+        if (
+          (response.status === 404 || response.status === 429 || response.status === 503) &&
+          candidate !== candidateModels[candidateModels.length - 1]
+        ) {
+          console.warn(`[AI] Gemini model ${candidate} returned ${response.status}, trying next candidate...`);
           continue;
         }
         throw new Error(`Gemini API error (${response.status}): ${errorText}`);
@@ -154,7 +170,7 @@ export async function generateAI(
     procEnv.openrouter_api_key?.trim();
 
   // Forgiving typo resolution for GEMINI_MODEL / GEMINI_MCDEL
-  const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-3.6-flash';
+  const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-3.5-flash-lite';
 
   // Normalize model provider intent
   const isGemini =
