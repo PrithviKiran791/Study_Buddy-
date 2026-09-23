@@ -14,14 +14,17 @@ export async function callGemini(
   systemInstruction?: string,
   inlineImage?: { mimeType: string; base64: string }
 ): Promise<string> {
-  // Normalize legacy/deprecated model names
-  let normalizedModel = model;
-  if (
-    model.includes('1.5') ||
-    model.includes('2.0') ||
-    model.includes('2.5') ||
-    model === 'gemini'
-  ) {
+  // Normalize model name to guaranteed active Gemini models
+  let normalizedModel = 'gemini-3.5-flash-lite';
+  if (model.includes('3.6')) {
+    normalizedModel = 'gemini-3.6-flash';
+  } else if (model.includes('3.8')) {
+    normalizedModel = 'gemini-3.8-flash';
+  } else if (model.includes('3.7')) {
+    normalizedModel = 'gemini-3.7-flash';
+  } else if (model.includes('pro') || model === 'deep-reasoner') {
+    normalizedModel = 'gemini-2.5-pro';
+  } else {
     normalizedModel = 'gemini-3.5-flash-lite';
   }
 

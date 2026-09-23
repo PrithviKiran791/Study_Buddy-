@@ -162,35 +162,100 @@ app.post('/api/chat', optionalAuthMiddleware, async (c) => {
   }
 });
 
-// Text summarizer
-app.post('/api/generate-summary', async (c) => {
+// Helper to extract text from URL
+async function extractTextFromUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 StudyBuddyBot/2.0' } });
+    if (!res.ok) return `Error fetching URL (status ${res.status})`;
+    const html = await res.text();
+    // Simple HTML text extractor
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  } catch (err: any) {
+    return `Error fetching URL: ${err.message}`;
+  }
+}
+
+// 1. Text & URL Summarizer (handles both /api/summarize and /api/generate-summary)
+const handleSummarize = async (c: any) => {
   try {
     const body = await c.req.json();
-    const text = body.text || body.content;
+    let text = (body.text || body.content || '').trim();
+    const url = (body.url || '').trim();
+
+    if (url) {
+      const extracted = await extractTextFromUrl(url);
+      if (extracted.startsWith('Error')) {
+        return c.json({ error: extracted }, 400);
+      }
+      text = extracted;
+    }
+
     if (!text) {
-      return c.json({ error: 'Text content is required' }, 400);
+      return c.json({ error: 'Please provide text or a valid URL' }, 400);
     }
 
     const prompt =
-      `Summarize the following content in a few clear, concise sentences. ` +
-      `Use clean bullet points for key takeaways if helpful, and keep it digestible for quick revision:\n\n${text}`;
+      `Summarize the following content in clear, engaging, educational sentences. ` +
+      `Use clean bullet points for key takeaways if helpful, and keep it digestible for quick revision:\n\n${text.slice(0, 10000)}`;
 
     const { text: summary, modelUsed } = await generateAI(c.env, {
       prompt,
       model: body.model,
     });
 
-    return c.json({ summary, model_used: modelUsed });
+    const preview = text.slice(0, 500) + (text.length > 500 ? '...' : '');
+    return c.json({
+      summary,
+      input_preview: preview,
+      model_used: modelUsed,
+    });
   } catch (err: any) {
-    return c.json({ error: err.message || 'Failed to generate summary' }, 500);
+    return c.json({ error: err.message || 'Failed to summarize' }, 500);
+  }
+};
+app.post('/api/summarize', handleSummarize);
+app.post('/api/generate-summary', handleSummarize);
+
+// 2. Research Assistant (/api/research)
+app.post('/api/research', async (c) => {
+  try {
+    const body = await c.req.json();
+    const topic = (body.topic || '').trim();
+    if (!topic) {
+      return c.json({ error: 'Please enter a topic' }, 400);
+    }
+
+    const prompt =
+      `Conduct an in-depth academic research overview on the topic: "${topic}".\n\n` +
+      `Structure your response with clear Markdown formatting:\n` +
+      `# Executive Summary\n` +
+      `## Foundational Concepts & Key Definitions\n` +
+      `## Detailed Technical/Academic Analysis\n` +
+      `## Real-World Applications & Case Studies\n` +
+      `## Key Takeaways & Study Recommendations\n\n` +
+      `Be comprehensive, authoritative, clear, and educational.`;
+
+    const { text: content } = await generateAI(c.env, {
+      prompt,
+      model: body.model,
+    });
+
+    return c.json({ topic, content });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to generate research' }, 500);
   }
 });
 
-// Flashcard generator
-app.post('/api/generate-flashcards', async (c) => {
+// 3. Flashcard Generator (handles both /api/flashcards and /api/generate-flashcards)
+const handleFlashcards = async (c: any) => {
   try {
     const body = await c.req.json();
-    const topic = body.topic;
+    const topic = (body.topic || '').trim();
     const count = parseInt(body.count || '5', 10);
 
     if (!topic) {
@@ -209,55 +274,32 @@ app.post('/api/generate-flashcards', async (c) => {
       model: body.model,
     });
 
-    let flashcards = [];
+    let cards: any[] = [];
     try {
       const cleanJson = result.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
-      flashcards = JSON.parse(cleanJson);
+      cards = JSON.parse(cleanJson);
+      if (!Array.isArray(cards)) cards = [];
     } catch {
-      flashcards = [
+      cards = [
         { question: `Key concept of ${topic}`, answer: result.slice(0, 200) },
       ];
     }
 
-    return c.json({ flashcards, count: flashcards.length });
+    return c.json({
+      topic,
+      cards,
+      flashcards: cards,
+      count: cards.length,
+    });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to generate flashcards' }, 500);
   }
-});
+};
+app.post('/api/flashcards', handleFlashcards);
+app.post('/api/generate-flashcards', handleFlashcards);
 
-// Quiz question generator
-app.post('/api/generate-quiz', async (c) => {
-  try {
-    const body = await c.req.json();
-    const paragraph = body.paragraph || body.text;
-
-    if (!paragraph) {
-      return c.json({ error: 'Paragraph or text is required' }, 400);
-    }
-
-    const prompt =
-      `Generate exactly 5 high-quality, relevant educational questions based strictly on the following text.\n` +
-      `Return them as a clean plain text list with exactly one question per line without any numbers, letters, or bullet points.\n\n` +
-      `Text:\n${paragraph}`;
-
-    const { text: result } = await generateAI(c.env, {
-      prompt,
-      model: body.model,
-    });
-
-    const questions = result
-      .split('\n')
-      .map((q) => q.replace(/^[\d\.\-\*\)\s]+/, '').trim())
-      .filter((q) => q.length > 5);
-
-    return c.json({ questions });
-  } catch (err: any) {
-    return c.json({ error: err.message || 'Failed to generate quiz' }, 500);
-  }
-});
-
-// Study planner
-app.post('/api/generate-study-plan', async (c) => {
+// 4. Study Planner (handles both /api/study-plan and /api/generate-study-plan)
+const handleStudyPlan = async (c: any) => {
   try {
     const body = await c.req.json();
     const syllabus = body.syllabus;
@@ -282,20 +324,105 @@ app.post('/api/generate-study-plan', async (c) => {
       model: body.model,
     });
 
-    return c.json({ plan });
+    return c.json({ study_plan: plan, plan });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to generate study plan' }, 500);
+  }
+};
+app.post('/api/study-plan', handleStudyPlan);
+app.post('/api/generate-study-plan', handleStudyPlan);
+
+// 5. Quiz & Question Generator (handles both /api/generate-questions and /api/generate-quiz)
+const handleQuestions = async (c: any) => {
+  try {
+    const body = await c.req.json();
+    const paragraph = body.paragraph || body.text;
+
+    if (!paragraph) {
+      return c.json({ error: 'Paragraph or text is required' }, 400);
+    }
+
+    const prompt =
+      `Generate exactly 5 high-quality, relevant educational questions based strictly on the following text.\n` +
+      `Return them as a clean plain text list with exactly one question per line without any numbers, letters, or bullet points.\n\n` +
+      `Text:\n${paragraph}`;
+
+    const { text: result } = await generateAI(c.env, {
+      prompt,
+      model: body.model,
+    });
+
+    const questions = result
+      .split('\n')
+      .map((q) => q.replace(/^[\d\.\-\*\)\s]+/, '').trim())
+      .filter((q) => q.length > 5);
+
+    return c.json({ questions, input_paragraph: paragraph });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to generate questions' }, 500);
+  }
+};
+app.post('/api/generate-questions', handleQuestions);
+app.post('/api/generate-quiz', handleQuestions);
+
+// 6. Notes Generator (/api/generate-notes)
+app.post('/api/generate-notes', async (c) => {
+  try {
+    const body = await c.req.json();
+    const topic = (body.topic || '').trim();
+    const material = (body.material || '').trim();
+
+    if (!topic) {
+      return c.json({ error: 'Please enter a topic' }, 400);
+    }
+
+    let prompt = `Create comprehensive, beautifully structured study notes about ${topic}.`;
+    if (material) {
+      prompt += ` Use the following source material:\n${material}`;
+    }
+    prompt += '\nFormat the output in clean, readable markdown with bullet points, sub-headings, and definitions of key terms.';
+
+    const { text: notes } = await generateAI(c.env, {
+      prompt,
+      model: body.model,
+    });
+
+    return c.json({ topic, notes });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to generate notes' }, 500);
+  }
+});
+
+// 7. Web Search QA (/api/web-search)
+app.post('/api/web-search', async (c) => {
+  try {
+    const body = await c.req.json();
+    const question = (body.question || '').trim();
+    if (!question) {
+      return c.json({ error: 'Please enter a question' }, 400);
+    }
+
+    const prompt = `Search and answer: ${question}. Provide a detailed, educational response with practical examples.`;
+    const { text: answer } = await generateAI(c.env, {
+      prompt,
+      model: body.model,
+    });
+
+    return c.json({ question, answer });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to perform search' }, 500);
   }
 });
 
 // ==========================================
-// 3. Document RAG Endpoints
+// 3. Document RAG Endpoints (PDF Upload & Chat)
 // ==========================================
 
 app.post('/api/upload-pdf', async (c) => {
   try {
     const formData = await c.req.formData();
-    const file = formData.get('file') as File | null;
+    // Accept either pdf_file, file, or pdf field names
+    const file = (formData.get('pdf_file') || formData.get('file') || formData.get('pdf')) as File | null;
 
     if (!file) {
       return c.json({ error: 'No PDF file provided' }, 400);
@@ -311,6 +438,7 @@ app.post('/api/upload-pdf', async (c) => {
     return c.json({
       session_id: sessionId,
       message: 'PDF processed successfully',
+      preview: `Processed ${file.name} (${totalPages} page${totalPages === 1 ? '' : 's'})`,
       total_chunks: totalChunks,
       total_pages: totalPages,
     });
@@ -320,19 +448,18 @@ app.post('/api/upload-pdf', async (c) => {
   }
 });
 
-app.post('/api/chat-pdf', async (c) => {
+// PDF Chat endpoint (handles both /api/pdf-chat and /api/chat-pdf)
+const handlePdfChat = async (c: any) => {
   try {
     const body = await c.req.json();
     const sessionId = body.session_id;
-    const question = body.message || body.question;
+    const question = body.question || body.message;
 
     if (!sessionId || !question) {
-      return c.json({ error: 'session_id and message/question are required' }, 400);
+      return c.json({ error: 'session_id and question are required' }, 400);
     }
 
-    const contextChunks = c.env.DB
-      ? await searchPDFChunks(c.env.DB, sessionId, question)
-      : [];
+    const contextChunks = await searchPDFChunks(c.env.DB, sessionId, question);
     const context = contextChunks.join('\n\n---\n\n');
 
     const prompt =
@@ -349,13 +476,16 @@ app.post('/api/chat-pdf', async (c) => {
     return c.json({
       reply,
       response: reply,
+      answer: reply,
       context_used: contextChunks.length > 0,
       model_used: modelUsed,
     });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to query PDF' }, 500);
   }
-});
+};
+app.post('/api/pdf-chat', handlePdfChat);
+app.post('/api/chat-pdf', handlePdfChat);
 
 // Visual QA endpoint (Gemini Multimodal)
 app.post('/api/visual-qa', async (c) => {
