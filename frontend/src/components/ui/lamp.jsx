@@ -130,7 +130,7 @@ export const LampContainer = ({
         ></div>
       </div>
 
-      <div className={cn("relative z-20 flex flex-col items-center w-full px-4 pt-20 md:pt-24 pb-16", childrenClassName)}>
+      <div className={cn("relative z-20 flex flex-col items-center w-full px-4 pt-32 md:pt-36 pb-16", childrenClassName)}>
         {children}
       </div>
     </div>
