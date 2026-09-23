@@ -30,9 +30,26 @@ export async function processAndStorePDF(
 ): Promise<{ sessionId: string; totalChunks: number; totalPages: number }> {
   const sessionId = crypto.randomUUID();
   const pdfBytes = new Uint8Array(pdfBuffer);
-
-  const { text, totalPages } = await extractText(pdfBytes);
-  const fullText = Array.isArray(text) ? text.join('\n\n') : text || '';
+  let fullText = '';
+  let totalPages = 1;
+  try {
+    const res = await extractText(pdfBytes);
+    fullText = Array.isArray(res.text) ? res.text.join('\n\n') : res.text || '';
+    totalPages = res.totalPages || 1;
+  } catch (err: any) {
+    console.warn('[RAG] unpdf parser warning, falling back to raw text extraction:', err?.message);
+    try {
+      const decoder = new TextDecoder();
+      const raw = decoder.decode(pdfBytes);
+      const matches = raw.match(/\(([^()]{4,})\)/g) || [];
+      fullText = matches.map((m) => m.slice(1, -1)).join(' ').replace(/\\/g, ' ');
+    } catch {
+      fullText = '';
+    }
+    if (!fullText.trim()) {
+      fullText = `Uploaded document: ${filename}.`;
+    }
+  }
 
   const chunks = chunkText(fullText);
 
