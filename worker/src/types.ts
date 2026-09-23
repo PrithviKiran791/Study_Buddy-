@@ -1,5 +1,5 @@
 export interface Env {
-  DB: D1Database;
+  DB?: D1Database;
   ASSETS: Fetcher;
   GEMINI_API_KEY?: string;
   OPENROUTER_API_KEY?: string;

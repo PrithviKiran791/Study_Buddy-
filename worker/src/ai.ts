@@ -174,11 +174,11 @@ export async function generateAI(
 }
 
 export async function extractAndSaveMemories(
-  db: D1Database,
+  db: D1Database | undefined,
   userId: string,
   userMessage: string
 ): Promise<void> {
-  if (!userId || !userMessage || userMessage.trim().length < 4) return;
+  if (!db || !userId || !userMessage || userMessage.trim().length < 4) return;
 
   const text = userMessage.toLowerCase().trim();
 
@@ -236,7 +236,7 @@ export async function extractAndSaveMemories(
 }
 
 export async function buildAIContext(
-  db: D1Database,
+  db: D1Database | undefined,
   userId: string | null,
   conversationId: string | null,
   currentQuestion: string,
@@ -246,22 +246,30 @@ export async function buildAIContext(
 
   parts.push(`SYSTEM INSTRUCTIONS:\n${STUDY_BUDDY_SYSTEM_PROMPT}`);
 
-  if (userId) {
-    const memories = await getUserMemories(db, userId);
-    if (memories.length > 0) {
-      const profileLines = memories.map((m) => `- [${m.category.toUpperCase()}] ${m.key}: ${m.value}`);
-      parts.push(`USER LEARNING PROFILE & PREFERENCES:\n${profileLines.join('\n')}`);
+  if (db && userId) {
+    try {
+      const memories = await getUserMemories(db, userId);
+      if (memories.length > 0) {
+        const profileLines = memories.map((m) => `- [${m.category.toUpperCase()}] ${m.key}: ${m.value}`);
+        parts.push(`USER LEARNING PROFILE & PREFERENCES:\n${profileLines.join('\n')}`);
+      }
+    } catch (err) {
+      console.warn('[MEMORY] Error fetching user memories:', err);
     }
   }
 
-  if (conversationId) {
-    const recentMessages = await getMessages(db, conversationId);
-    if (recentMessages.length > 0) {
-      const lastMessages = recentMessages.slice(-10);
-      const historyLines = lastMessages.map(
-        (m) => `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.content}`
-      );
-      parts.push(`RECENT CONVERSATION HISTORY:\n${historyLines.join('\n')}`);
+  if (db && conversationId) {
+    try {
+      const recentMessages = await getMessages(db, conversationId);
+      if (recentMessages.length > 0) {
+        const lastMessages = recentMessages.slice(-10);
+        const historyLines = lastMessages.map(
+          (m) => `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.content}`
+        );
+        parts.push(`RECENT CONVERSATION HISTORY:\n${historyLines.join('\n')}`);
+      }
+    } catch (err) {
+      console.warn('[DB] Error fetching messages:', err);
     }
   }
 

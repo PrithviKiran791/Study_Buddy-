@@ -45,16 +45,18 @@ export async function authMiddleware(
     return c.json({ error: 'Invalid or expired Firebase token' }, 401);
   }
 
-  // Ensure user is recorded in D1 database
-  try {
-    await upsertUser(c.env.DB, {
-      firebase_uid: user.uid,
-      email: user.email,
-      display_name: user.name,
-      photo_url: user.picture,
-    });
-  } catch (err) {
-    console.warn('[AUTH] Error syncing user to DB:', err);
+  // Ensure user is recorded in D1 database if DB is bound
+  if (c.env.DB) {
+    try {
+      await upsertUser(c.env.DB, {
+        firebase_uid: user.uid,
+        email: user.email,
+        display_name: user.name,
+        photo_url: user.picture,
+      });
+    } catch (err) {
+      console.warn('[AUTH] Error syncing user to DB:', err);
+    }
   }
 
   c.set('user', user);
@@ -71,15 +73,17 @@ export async function optionalAuthMiddleware(
     const projectId = c.env.FIREBASE_PROJECT_ID || 'studyassistant-26fb6';
     const user = await verifyFirebaseToken(token, projectId);
     if (user) {
-      try {
-        await upsertUser(c.env.DB, {
-          firebase_uid: user.uid,
-          email: user.email,
-          display_name: user.name,
-          photo_url: user.picture,
-        });
-      } catch (err) {
-        console.warn('[AUTH] Error syncing user to DB:', err);
+      if (c.env.DB) {
+        try {
+          await upsertUser(c.env.DB, {
+            firebase_uid: user.uid,
+            email: user.email,
+            display_name: user.name,
+            photo_url: user.picture,
+          });
+        } catch (err) {
+          console.warn('[AUTH] Error syncing user to DB:', err);
+        }
       }
       c.set('user', user);
     }

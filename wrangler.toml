@@ -9,10 +9,13 @@ binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = true
 
-[[d1_databases]]
-binding = "DB"
-database_name = "study-buddy-db"
-database_id = "study-buddy-db"
+# To enable Cloudflare D1 persistence:
+# 1. Run: npx wrangler d1 create study-buddy-db
+# 2. Paste the generated database_id below and uncomment:
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "study-buddy-db"
+# database_id = "your-database-id-uuid-here"
 
 [vars]
 DEFAULT_MODEL = "gemini"

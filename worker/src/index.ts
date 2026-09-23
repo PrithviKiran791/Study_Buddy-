@@ -126,21 +126,23 @@ app.post('/api/chat', optionalAuthMiddleware, async (c) => {
     });
 
     // Background memory extraction
-    if (user?.uid) {
+    if (user?.uid && c.env.DB) {
+      const db = c.env.DB;
       c.executionCtx.waitUntil(
-        extractAndSaveMemories(c.env.DB, user.uid, message).catch((err) =>
+        extractAndSaveMemories(db, user.uid, message).catch((err) =>
           console.warn('[MEMORY] Extraction error:', err)
         )
       );
     }
 
     // Save message to conversation if conversation_id provided
-    if (conversationId && user?.uid) {
+    if (conversationId && user?.uid && c.env.DB) {
+      const db = c.env.DB;
       c.executionCtx.waitUntil(
         (async () => {
           try {
-            await addMessage(c.env.DB, conversationId, 'user', message, modelUsed);
-            await addMessage(c.env.DB, conversationId, 'assistant', text, modelUsed);
+            await addMessage(db, conversationId, 'user', message, modelUsed);
+            await addMessage(db, conversationId, 'assistant', text, modelUsed);
           } catch (err) {
             console.warn('[DB] Failed to record chat messages:', err);
           }
@@ -292,6 +294,10 @@ app.post('/api/generate-study-plan', async (c) => {
 
 app.post('/api/upload-pdf', async (c) => {
   try {
+    if (!c.env.DB) {
+      return c.json({ error: 'D1 Database binding not configured' }, 503);
+    }
+
     const formData = await c.req.formData();
     const file = formData.get('file') as File | null;
 
@@ -328,7 +334,9 @@ app.post('/api/chat-pdf', async (c) => {
       return c.json({ error: 'session_id and message/question are required' }, 400);
     }
 
-    const contextChunks = await searchPDFChunks(c.env.DB, sessionId, question);
+    const contextChunks = c.env.DB
+      ? await searchPDFChunks(c.env.DB, sessionId, question)
+      : [];
     const context = contextChunks.join('\n\n---\n\n');
 
     const prompt =
@@ -392,6 +400,9 @@ app.post('/api/visual-qa', async (c) => {
 // ==========================================
 
 app.get('/api/user/memory', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ memories: [] });
+  }
   const user = c.get('user')!;
   const memories = await getUserMemories(c.env.DB, user.uid);
   return c.json({
@@ -420,23 +431,37 @@ app.post('/api/auth/verify', async (c) => {
     return c.json({ error: 'Invalid token' }, 401);
   }
 
-  const user = await upsertUser(c.env.DB, {
+  let user: any = {
     firebase_uid: decoded.uid,
     email: decoded.email,
     display_name: decoded.name,
     photo_url: decoded.picture,
-  });
+  };
+
+  if (c.env.DB) {
+    try {
+      user = await upsertUser(c.env.DB, user);
+    } catch (err) {
+      console.warn('[DB] User upsert warning:', err);
+    }
+  }
 
   return c.json({ user });
 });
 
 app.get('/api/auth/profile', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ user: null });
+  }
   const user = c.get('user')!;
   const profile = await getUser(c.env.DB, user.uid);
   return c.json({ user: profile });
 });
 
 app.put('/api/auth/profile', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ user: null });
+  }
   const user = c.get('user')!;
   const body = await c.req.json();
   const updated = await updateUserProfile(c.env.DB, user.uid, body);
@@ -448,12 +473,18 @@ app.put('/api/auth/profile', authMiddleware, async (c) => {
 // ==========================================
 
 app.get('/api/conversations', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ conversations: [] });
+  }
   const user = c.get('user')!;
   const conversations = await getConversations(c.env.DB, user.uid);
   return c.json({ conversations });
 });
 
 app.post('/api/conversations', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ error: 'Database not configured' }, 503);
+  }
   const user = c.get('user')!;
   const body = await c.req.json().catch(() => ({}));
   const title = body.title || 'New Conversation';
@@ -464,6 +495,9 @@ app.post('/api/conversations', authMiddleware, async (c) => {
 });
 
 app.get('/api/conversations/:id', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ error: 'Database not configured' }, 503);
+  }
   const user = c.get('user')!;
   const id = c.req.param('id');
   if (!id) return c.json({ error: 'ID is required' }, 400);
@@ -478,6 +512,9 @@ app.get('/api/conversations/:id', authMiddleware, async (c) => {
 });
 
 app.delete('/api/conversations/:id', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ error: 'Database not configured' }, 503);
+  }
   const user = c.get('user')!;
   const id = c.req.param('id');
   if (!id) return c.json({ error: 'ID is required' }, 400);
@@ -491,6 +528,9 @@ app.delete('/api/conversations/:id', authMiddleware, async (c) => {
 });
 
 app.get('/api/conversations/:id/messages', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ messages: [] });
+  }
   const user = c.get('user')!;
   const id = c.req.param('id');
   if (!id) return c.json({ error: 'ID is required' }, 400);
@@ -505,6 +545,9 @@ app.get('/api/conversations/:id/messages', authMiddleware, async (c) => {
 });
 
 app.post('/api/conversations/:id/messages', authMiddleware, async (c) => {
+  if (!c.env.DB) {
+    return c.json({ error: 'Database not configured' }, 503);
+  }
   const user = c.get('user')!;
   const id = c.req.param('id');
   if (!id) return c.json({ error: 'ID is required' }, 400);
