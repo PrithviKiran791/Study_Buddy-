@@ -25,8 +25,8 @@ export default function Login() {
 
       <LampContainer
         lampColor="white"
-        className="min-h-screen bg-black pt-16 md:pt-20 pb-20 overflow-visible"
-        childrenClassName="-translate-y-10 md:-translate-y-16 w-full max-w-xl px-4 flex flex-col items-center"
+        className="min-h-screen bg-black"
+        childrenClassName="w-full max-w-xl flex flex-col items-center"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
