@@ -54,10 +54,15 @@
 
   html {
     @apply scroll-smooth;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased transition-colors duration-300;
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
   }
 
   /* Make icons black in light mode and white in dark mode */

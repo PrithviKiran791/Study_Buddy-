@@ -5,9 +5,9 @@ import FocusFullscreenOverlay from '@/components/focus/FocusFullscreenOverlay'
 
 export default function MainLayout() {
   return (
-    <div className="min-h-screen bg-background/80 backdrop-blur-[2px] relative">
+    <div className="min-h-screen bg-background/80 backdrop-blur-[2px] relative overflow-x-hidden w-full max-w-full">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8 w-full max-w-full min-w-0">
         <Outlet />
       </main>
       <FocusTimerWidget />

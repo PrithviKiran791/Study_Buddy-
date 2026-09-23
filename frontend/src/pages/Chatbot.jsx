@@ -230,80 +230,81 @@ export default function Chatbot() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0 overflow-x-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-4"
+        className="text-center space-y-2 sm:space-y-3 px-1 sm:px-2"
       >
-        <div className="flex items-center justify-center gap-3">
-          <MessageSquare className="w-10 h-10 text-accent" />
-          <h1 className="text-4xl font-bold">AI Tutor</h1>
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3">
+          <MessageSquare className="w-7 h-7 sm:w-10 sm:h-10 text-accent shrink-0" />
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight">AI Tutor</h1>
         </div>
-        <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+        <p className="text-zinc-400 text-xs sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
           Get instant help with your questions - Your personal AI study companion with persistent learning memory
         </p>
       </motion.div>
 
       {/* Chat Container */}
       <GlassCard>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-border/40">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h2 className="text-lg font-semibold tracking-tight">Conversation</h2>
-            {/* JellyRadio Category selection */}
-            <div className="overflow-x-auto max-w-full py-0.5">
-              <JellyRadio
-                items={CATEGORY_ITEMS}
-                value={category}
-                onChange={(val) => setCategory(val)}
-                size="sm"
-                gap={6}
-                radius={14}
-                swell={0.16}
-                barge={5}
-                stiffness={580}
-                bounce={0.25}
-                ariaLabel="Study subject category"
-              />
+        <div className="flex flex-col gap-3 mb-4 pb-4 border-b border-border/40 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 w-full flex-wrap">
+            <h2 className="text-base sm:text-lg font-semibold tracking-tight">Conversation</h2>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              {/* AI Memory Badge Button */}
+              <button
+                onClick={() => setShowMemoryModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-semibold transition-all hover:scale-105"
+                title="View active AI memories"
+              >
+                <Brain className="w-3.5 h-3.5 text-blue-400 animate-pulse shrink-0" />
+                <span>AI Memory ({memories.length})</span>
+              </button>
+
+              {/* Past Sessions Button */}
+              <button
+                onClick={() => setShowHistoryModal(true)}
+                className="btn-ghost flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1"
+                title="View previous study sessions"
+              >
+                <History className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Sessions</span>
+              </button>
+
+              {/* Clear Chat Button */}
+              <button
+                onClick={handleClear}
+                className="btn-ghost flex items-center gap-1.5 text-red-400 hover:text-red-300 text-xs px-2 py-1"
+                title="Start a new chat session"
+              >
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">New Chat</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap self-end sm:self-center">
-            {/* AI Memory Badge Button */}
-            <button
-              onClick={() => setShowMemoryModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-semibold transition-all hover:scale-105"
-              title="View active AI memories"
-            >
-              <Brain className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-              <span>AI Memory ({memories.length})</span>
-            </button>
-
-            {/* Past Sessions Button */}
-            <button
-              onClick={() => setShowHistoryModal(true)}
-              className="btn-ghost flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              title="View previous study sessions"
-            >
-              <History className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Sessions</span>
-            </button>
-
-            {/* Clear Chat Button */}
-            <button
-              onClick={handleClear}
-              className="btn-ghost flex items-center gap-1.5 text-red-400 hover:text-red-300 text-xs"
-              title="Start a new chat session"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">New Chat</span>
-            </button>
+          {/* JellyRadio Category selection - cleanly scrollable without blowout */}
+          <div className="w-full max-w-full min-w-0 overflow-x-auto py-1 scrollbar-none -mx-1 px-1">
+            <JellyRadio
+              items={CATEGORY_ITEMS}
+              value={category}
+              onChange={(val) => setCategory(val)}
+              size="sm"
+              gap={6}
+              radius={14}
+              swell={0.16}
+              barge={5}
+              stiffness={580}
+              bounce={0.25}
+              ariaLabel="Study subject category"
+            />
           </div>
         </div>
 
         {/* Messages */}
-        <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 mb-4">
+        <div className="space-y-4 sm:space-y-6 max-h-[500px] overflow-y-auto overflow-x-hidden pr-1 sm:pr-2 mb-4 w-full min-w-0">
           {messages.map((msg, index) => (
             <ChatMessage
               key={index}
@@ -507,22 +508,22 @@ export default function Chatbot() {
 
       {/* Tips */}
       <GlassCard>
-        <h3 className="text-lg font-semibold mb-3">AI Memory Tips:</h3>
-        <ul className="space-y-2 text-sm text-zinc-400">
+        <h3 className="text-base sm:text-lg font-semibold mb-3">AI Memory Tips:</h3>
+        <ul className="space-y-2.5 text-xs sm:text-sm text-zinc-400">
           <li className="flex items-start gap-2">
-            <span className="text-blue-400 font-bold">•</span>
-            <span>Say <code className="text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded">Remember that I prefer code examples in Python</code> to set your explanation style.</span>
+            <span className="text-blue-400 font-bold shrink-0">•</span>
+            <span className="break-words">Say <code className="text-[11px] sm:text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded break-all">Remember that I prefer code examples in Python</code> to set your explanation style.</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-400 font-bold">•</span>
-            <span>Say <code className="text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded">I struggle with dynamic programming</code> to have the AI adapt breakdowns for weak topics.</span>
+            <span className="text-blue-400 font-bold shrink-0">•</span>
+            <span className="break-words">Say <code className="text-[11px] sm:text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded break-all">I struggle with dynamic programming</code> to have the AI adapt breakdowns for weak topics.</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-400 font-bold">•</span>
-            <span>Say <code className="text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded">I am preparing for AWS Certified Solutions Architect</code> to set your study goal.</span>
+            <span className="text-blue-400 font-bold shrink-0">•</span>
+            <span className="break-words">Say <code className="text-[11px] sm:text-xs text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded break-all">I am preparing for AWS Certified Solutions Architect</code> to set your study goal.</span>
           </li>
           <li className="flex items-start gap-2">
-            <span className="text-blue-400 font-bold">•</span>
+            <span className="text-blue-400 font-bold shrink-0">•</span>
             <span>Click the <strong className="text-blue-400">AI Memory ({memories.length})</strong> badge at the top to inspect, manage, or delete stored facts at any time.</span>
           </li>
         </ul>

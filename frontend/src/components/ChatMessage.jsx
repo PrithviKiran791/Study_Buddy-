@@ -16,26 +16,26 @@ export default function ChatMessage({ message, isUser, memoriesUsed = 0 }) {
 
   return (
     <motion.div
-      className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`flex gap-2.5 sm:gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'} w-full min-w-0`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
       {/* Avatar */}
       <div
-        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+        className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
           isUser ? 'bg-white text-black' : 'bg-zinc-900 border border-zinc-800 text-zinc-100'
         }`}
       >
-        {isUser ? <User size={20} className="text-black" /> : <Bot size={20} className="text-white" />}
+        {isUser ? <User size={16} className="text-black sm:w-5 sm:h-5" /> : <Bot size={16} className="text-white sm:w-5 sm:h-5" />}
       </div>
 
       {/* Message */}
-      <div className={`flex-1 max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
+      <div className={`flex-1 max-w-[88%] sm:max-w-[80%] min-w-0 ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
         <div
-          className={`p-4 rounded-2xl ${
+          className={`p-3 sm:p-4 rounded-2xl ${
             isUser ? 'bg-white border border-white text-black' : 'bg-zinc-900 border border-zinc-800 text-zinc-100'
-          } relative group`}
+          } relative group max-w-full min-w-0 break-words overflow-hidden`}
         >
           {!isUser && memoriesUsed > 0 && (
             <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full w-fit select-none">

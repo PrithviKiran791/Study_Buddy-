@@ -20,14 +20,14 @@ export default function GlassCard({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="w-full"
+        className="w-full max-w-full min-w-0"
       >
         <BorderGlow
           edgeSensitivity={edgeSensitivity}
           glowColor={glowColor}
           borderRadius={borderRadius}
           glowRadius={36}
-          className={`${baseClasses} p-6 ${className}`}
+          className={`${baseClasses} p-4 sm:p-6 w-full max-w-full min-w-0 ${className}`}
           {...props}
         >
           {children}
@@ -38,7 +38,7 @@ export default function GlassCard({
 
   return (
     <motion.div
-      className={`${baseClasses} p-6 ${className}`}
+      className={`${baseClasses} p-4 sm:p-6 w-full max-w-full min-w-0 ${className}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}

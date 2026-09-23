@@ -41,6 +41,9 @@
     border-color 0.2s ease,
     box-shadow 0.2s ease;
   overflow: visible;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .prompt-bar__field:focus-within {
@@ -128,11 +131,14 @@
 .prompt-bar__bar {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 8px;
   z-index: 1;
   user-select: none;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .prompt-bar__tool {

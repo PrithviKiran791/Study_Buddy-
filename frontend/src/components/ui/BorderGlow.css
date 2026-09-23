@@ -12,6 +12,10 @@
   isolation: isolate;
   transform: translate3d(0, 0, 0.01px);
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid hsl(var(--border) / 0.6);
   background: var(--card-bg, hsl(var(--card) / 0.85));
   backdrop-filter: blur(16px);
@@ -171,6 +175,9 @@
   flex-direction: column;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 100%;
   z-index: 1;
+  box-sizing: border-box;
 }
