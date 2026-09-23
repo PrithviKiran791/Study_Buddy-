@@ -39,6 +39,7 @@
     "rehype-highlight": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
+    "study-buddy-monorepo": "file:..",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
