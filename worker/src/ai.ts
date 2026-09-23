@@ -9,55 +9,80 @@ export const STUDY_BUDDY_SYSTEM_PROMPT =
 
 export async function callGemini(
   apiKey: string,
-  model = 'gemini-1.5-flash',
+  model = 'gemini-3.6-flash',
   prompt: string,
   systemInstruction?: string,
   inlineImage?: { mimeType: string; base64: string }
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const parts: any[] = [];
-  if (inlineImage) {
-    parts.push({
-      inline_data: {
-        mime_type: inlineImage.mimeType,
-        data: inlineImage.base64,
-      },
-    });
-  }
-  parts.push({ text: prompt });
-
-  const body: any = {
-    contents: [{ role: 'user', parts }],
-    generationConfig: {
-      temperature: 0.7,
-    },
-  };
-
-  if (systemInstruction) {
-    body.system_instruction = {
-      parts: [{ text: systemInstruction }],
-    };
+  // Normalize legacy/deprecated model names
+  let normalizedModel = model;
+  if (model.includes('1.5') || model.includes('2.0') || model === 'gemini') {
+    normalizedModel = 'gemini-3.6-flash';
   }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  const candidateModels = Array.from(new Set([normalizedModel, 'gemini-3.6-flash', 'gemini-2.5-flash-lite'])).filter(Boolean);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+  let lastError: Error | null = null;
+  for (const candidate of candidateModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${candidate}:generateContent?key=${apiKey}`;
+
+      const parts: any[] = [];
+      if (inlineImage) {
+        parts.push({
+          inline_data: {
+            mime_type: inlineImage.mimeType,
+            data: inlineImage.base64,
+          },
+        });
+      }
+      parts.push({ text: prompt });
+
+      const body: any = {
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: 0.7,
+        },
+      };
+
+      if (systemInstruction) {
+        body.system_instruction = {
+          parts: [{ text: systemInstruction }],
+        };
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        // If 404 model not found, try next candidate
+        if (response.status === 404 && candidate !== candidateModels[candidateModels.length - 1]) {
+          console.warn(`[AI] Gemini model ${candidate} returned 404, trying next candidate...`);
+          continue;
+        }
+        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+      }
+
+      const data: any = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        throw new Error('Gemini API returned an empty response');
+      }
+
+      return text;
+    } catch (err: any) {
+      lastError = err;
+      if (candidate === candidateModels[candidateModels.length - 1]) {
+        throw err;
+      }
+    }
   }
 
-  const data: any = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Gemini API returned an empty response');
-  }
-
-  return text;
+  throw lastError || new Error('Failed to generate content with Gemini');
 }
 
 export async function callOpenRouter(
@@ -129,7 +154,7 @@ export async function generateAI(
     procEnv.openrouter_api_key?.trim();
 
   // Forgiving typo resolution for GEMINI_MODEL / GEMINI_MCDEL
-  const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-1.5-flash';
+  const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-3.6-flash';
 
   // Normalize model provider intent
   const isGemini =
