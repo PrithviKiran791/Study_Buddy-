@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
-import { User, Bot, Copy, Check } from 'lucide-react'
+import { User, Bot, Copy, Check, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import MarkdownViewer from './MarkdownViewer'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
-export default function ChatMessage({ message, isUser }) {
+export default function ChatMessage({ message, isUser, memoriesUsed = 0 }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -37,6 +37,12 @@ export default function ChatMessage({ message, isUser }) {
             isUser ? 'bg-white border border-white text-black' : 'bg-zinc-900 border border-zinc-800 text-zinc-100'
           } relative group`}
         >
+          {!isUser && memoriesUsed > 0 && (
+            <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full w-fit select-none">
+              <Sparkles size={12} className="text-blue-400 animate-pulse" />
+              <span>Personalized with {memoriesUsed} {memoriesUsed === 1 ? 'memory' : 'memories'}</span>
+            </div>
+          )}
           {!isUser && (
             <button
               onClick={handleCopy}

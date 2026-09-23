@@ -1,0 +1,60 @@
+.counter-container {
+  position: relative;
+  display: inline-block;
+}
+
+.counter-counter {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  line-height: 1;
+  user-select: none;
+}
+
+.counter-digit {
+  position: relative;
+  width: 1ch;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.counter-digit.counter-separator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.15em;
+  opacity: 0.6;
+}
+
+.counter-number {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gradient-container {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.top-gradient {
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.bottom-gradient {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}

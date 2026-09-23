@@ -58,7 +58,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               exit={{ opacity: 0, x: -10 }}
               className="text-lg font-bold text-black dark:text-white font-sans tracking-tight"
             >
-              Study Buddy
+              Study Assistant
             </motion.span>
           )}
         </Link>

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { FileText, Loader2, BookOpen, Sparkles, Download, Printer, Send } from 'lucide-react'
 import api from '../api/axios'
 import MarkdownViewer from '../components/MarkdownViewer'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
 export default function Notes() {
   const [topic, setTopic] = useState('')

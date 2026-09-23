@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HelpCircle, Loader2, Sparkles, Send, CheckCircle2, ChevronRight } from 'lucide-react'
 import api from '../api/axios'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
 export default function Quiz() {
   const [paragraph, setParagraph] = useState('')

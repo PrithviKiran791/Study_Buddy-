@@ -1,14 +1,54 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Sliders, Activity, HelpCircle, CheckCircle, Wifi, RefreshCw } from 'lucide-react'
+import { Sliders, Activity, Wifi, RefreshCw, Brain, Trash2, ShieldAlert } from 'lucide-react'
 import api from '../api/axios'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
 export default function Settings() {
   const [checking, setChecking] = useState(false)
   const [apiStatus, setApiStatus] = useState(null)
   const [workTime, setWorkTime] = useState(25)
   const [breakTime, setBreakTime] = useState(5)
+  
+  const [memories, setMemories] = useState([])
+  const [loadingMemories, setLoadingMemories] = useState(false)
+
+  const fetchMemories = async () => {
+    setLoadingMemories(true)
+    try {
+      const res = await api.get('/memory')
+      setMemories(res.data?.memories || [])
+    } catch (err) {
+      console.error('Failed to load AI memories:', err)
+    } finally {
+      setLoadingMemories(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchMemories()
+  }, [])
+
+  const handleDeleteMemory = async (memoryId) => {
+    try {
+      await api.delete(`/memory/${memoryId}`)
+      toast.success('Memory deleted')
+      setMemories((prev) => prev.filter((m) => m.id !== memoryId))
+    } catch (err) {
+      toast.error('Failed to delete memory')
+    }
+  }
+
+  const handleClearAllMemories = async () => {
+    if (!window.confirm('Are you sure you want to clear all saved AI learning memories?')) return
+    try {
+      await api.delete('/memory')
+      toast.success('All AI memories cleared')
+      setMemories([])
+    } catch (err) {
+      toast.error('Failed to clear memories')
+    }
+  }
 
   const checkConnection = async () => {
     setChecking(true)
@@ -45,7 +85,61 @@ export default function Settings() {
     >
       <div className="text-left mb-6">
         <h2 className="text-2xl font-bold tracking-tight">Application Settings</h2>
-        <p className="text-zinc-500 text-xs">Configure preferences and run connection diagnostics</p>
+        <p className="text-zinc-500 text-xs">Configure preferences, AI memory, and run diagnostics</p>
+      </div>
+
+      {/* AI Memory Management */}
+      <div className="glass-card p-6 border border-white/10 bg-zinc-950/20 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="flex items-center gap-3">
+            <Brain className="text-blue-400 w-5 h-5" />
+            <h3 className="font-bold text-sm uppercase tracking-wider text-white">AI Learning Memory</h3>
+          </div>
+          {memories.length > 0 && (
+            <button
+              onClick={handleClearAllMemories}
+              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Clear All Memories
+            </button>
+          )}
+        </div>
+
+        <p className="text-zinc-400 text-xs leading-relaxed">
+          Study Buddy automatically learns your study goals, weak topics, and explanation preferences to personalize AI responses across all sessions.
+        </p>
+
+        {loadingMemories ? (
+          <div className="text-zinc-500 text-xs py-4 text-center">Loading saved memories...</div>
+        ) : memories.length === 0 ? (
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-zinc-500">
+            No saved memories yet. As you chat, Study Buddy will automatically learn your study preferences!
+          </div>
+        ) : (
+          <div className="space-y-2 pt-2">
+            {memories.map((mem) => (
+              <div
+                key={mem.id}
+                className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 text-xs"
+              >
+                <div>
+                  <span className="font-mono text-[10px] uppercase font-bold text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 mr-2">
+                    {mem.memory_type}
+                  </span>
+                  <span className="font-semibold text-zinc-200 mr-2">{mem.memory_key}:</span>
+                  <span className="text-zinc-400">{mem.memory_value}</span>
+                </div>
+                <button
+                  onClick={() => handleDeleteMemory(mem.id)}
+                  className="text-zinc-500 hover:text-red-400 p-1 transition-colors"
+                  title="Delete memory"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Focus Timer configuration */}
@@ -104,7 +198,7 @@ export default function Settings() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block font-sans">API Endpoint URI</span>
-            <span className="text-zinc-300 text-xs font-mono">http://localhost:5000/api</span>
+            <span className="text-zinc-300 text-xs font-mono break-all">{import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '')}/api` : 'http://localhost:5000/api'}</span>
           </div>
           <button
             onClick={checkConnection}

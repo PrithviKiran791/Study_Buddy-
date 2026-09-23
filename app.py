@@ -14,6 +14,18 @@ from rag_engine import PDFRagSystem
 import sqlite3
 from ai.factory import get_llm_provider, get_actionable_llm_error, clear_provider_cache
 import config
+from auth.firebase_auth import require_auth
+from services.memory.conversation_service import (
+    create_conversation, get_user_conversations, get_conversation,
+    delete_conversation, add_message, get_recent_messages,
+    update_conversation_title, generate_title_from_message
+)
+from services.memory.profile_service import (
+    get_user_memories, save_user_memory, delete_user_memory, clear_user_memories
+)
+from services.memory.summary_service import maybe_update_conversation_summary
+from services.memory.memory_extractor import extract_and_save_memories
+from services.memory.context_builder import build_ai_context
 
 # Load environment variables (force override to ensure new keys in .env are always respected)
 load_dotenv(override=True)
@@ -22,26 +34,103 @@ clear_provider_cache()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
-# SQLite Database Setup
-DATABASE_FILE = "study_buddy.db"
-
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# SQLite Database Setup (centralized in config.py, supports Railway volume e.g. /data/study_buddy.db)
+from config import DATABASE_FILE, get_db_connection
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # 1. Users table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
+            firebase_uid TEXT UNIQUE,
+            username TEXT,
             email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            password_hash TEXT DEFAULT '',
+            display_name TEXT,
+            photo_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    
+    # Ensure missing columns exist if table existed previously
+    cursor.execute("PRAGMA table_info(users)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if "firebase_uid" not in columns:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN firebase_uid TEXT")
+            cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid)")
+            conn.commit()
+        except Exception as e:
+            print(f"[DB MIGRATION NOTE] firebase_uid column check: {e}")
+    if "display_name" not in columns:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+            conn.commit()
+        except Exception as e:
+            print(f"[DB MIGRATION NOTE] display_name column check: {e}")
+    if "photo_url" not in columns:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN photo_url TEXT")
+            conn.commit()
+        except Exception as e:
+            print(f"[DB MIGRATION NOTE] photo_url column check: {e}")
+    if "last_login_at" not in columns:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP")
+            conn.commit()
+        except Exception as e:
+            print(f"[DB MIGRATION NOTE] last_login_at column check: {e}")
+    if "updated_at" not in columns:
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP")
+            conn.commit()
+        except Exception as e:
+            print(f"[DB MIGRATION NOTE] updated_at column check: {e}")
+
+    # 2. Conversations table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS conversations (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            summary TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    # 3. Messages table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+        )
+    """)
+
+    # 4. User Memory table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_memory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            memory_type TEXT NOT NULL,
+            memory_key TEXT NOT NULL,
+            memory_value TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -66,10 +155,23 @@ _configured = sum(
 if _configured == 0:
     print("[LLM] WARNING: No valid API keys found. AI features will fail until .env is configured.")
 
-# Enable CORS for React frontend
+# Enable CORS for React frontend (supports FRONTEND_URL env var for Vercel production)
+_frontend_env = os.getenv("FRONTEND_URL", "")
+_allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+if _frontend_env:
+    for _url in _frontend_env.split(","):
+        _cleaned = _url.strip().rstrip("/")
+        if _cleaned and _cleaned not in _allowed_origins:
+            _allowed_origins.append(_cleaned)
+
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:5173", "http://localhost:3000"],
+        "origins": _allowed_origins,
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -126,17 +228,27 @@ def home():
 
 @app.route("/api/health", methods=["GET"])
 def health_check():
+    db_ok = False
+    try:
+        conn = get_db_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+        db_ok = True
+    except Exception as db_err:
+        print(f"[HEALTH] DB health check failed: {db_err}")
+
     status = config.get_provider_status()
     configured = [
         name for name, info in status.items()
         if name != "default_model" and isinstance(info, dict) and info.get("configured")
     ]
     return jsonify({
-        "status": "healthy",
+        "status": "healthy" if db_ok else "degraded",
+        "database": "connected" if db_ok else "unreachable",
         "default_model": status["default_model"],
         "providers_configured": configured,
         "any_provider_ready": len(configured) > 0,
-    })
+    }), (200 if db_ok else 503)
 
 
 @app.route("/api/llm/status", methods=["GET"])
@@ -479,24 +591,141 @@ def visual_qa():
         return jsonify({"error": f"Gemini Vision Error: {e}", "hint": hint}), 500
 
 # 11. General Chatbot API
+# 11. Auth & User Profile API
+@app.route("/api/user/me", methods=["GET"])
+@require_auth
+def get_current_user():
+    return jsonify({"user": request.user}), 200
+
+# 12. Persistent Conversations API
+@app.route("/api/conversations", methods=["GET"])
+@require_auth
+def list_conversations():
+    conversations = get_user_conversations(request.user["id"])
+    return jsonify({"conversations": conversations}), 200
+
+@app.route("/api/conversations", methods=["POST"])
+@require_auth
+def new_conversation():
+    data = request.get_json() or {}
+    title = data.get("title", "New Study Session")
+    conv = create_conversation(request.user["id"], title)
+    return jsonify({"conversation": conv}), 201
+
+@app.route("/api/conversations/<conversation_id>", methods=["GET"])
+@require_auth
+def get_conversation_details(conversation_id):
+    conv = get_conversation(request.user["id"], conversation_id)
+    if not conv:
+        return jsonify({"error": "Conversation not found"}), 404
+    return jsonify({"conversation": conv}), 200
+
+@app.route("/api/conversations/<conversation_id>", methods=["DELETE"])
+@require_auth
+def remove_conversation(conversation_id):
+    success = delete_conversation(request.user["id"], conversation_id)
+    if not success:
+        return jsonify({"error": "Conversation not found or unauthorized"}), 404
+    return jsonify({"success": True, "message": "Conversation deleted"}), 200
+
+# 13. Persistent User Learning Memory API
+@app.route("/api/memory", methods=["GET"])
+@require_auth
+def list_memories():
+    memories = get_user_memories(request.user["id"])
+    return jsonify({"memories": memories}), 200
+
+@app.route("/api/memory/<int:memory_id>", methods=["DELETE"])
+@require_auth
+def remove_single_memory(memory_id):
+    success = delete_user_memory(request.user["id"], memory_id)
+    if not success:
+        return jsonify({"error": "Memory item not found"}), 404
+    return jsonify({"success": True, "message": "Memory item deleted"}), 200
+
+@app.route("/api/memory", methods=["DELETE"])
+@require_auth
+def remove_all_memories():
+    clear_user_memories(request.user["id"])
+    return jsonify({"success": True, "message": "All AI learning memories cleared"}), 200
+
+# 14. General Chatbot API (Authenticated & Memory-Aware)
 @app.route("/api/chat", methods=["POST"])
+@require_auth
 def chat():
-    data = request.get_json()
+    data = request.get_json() or {}
     message = data.get("message", "").strip()
-    history = data.get("history", [])
+    conversation_id = data.get("conversation_id")
+    user_id = request.user["id"]
     
     if not message:
         return jsonify({"error": "Please provide a message"}), 400
-        
+
+    # Resolve or create conversation
+    conv = None
+    if conversation_id:
+        conv = get_conversation(user_id, conversation_id)
+
+    if not conv:
+        # Create a new conversation if missing/invalid
+        initial_title = generate_title_from_message(message)
+        conv = create_conversation(user_id, title=initial_title)
+        conversation_id = conv["id"]
+    else:
+        # Update title if still generic
+        if conv["title"] in ["New Study Session", "New Chat"]:
+            new_title = generate_title_from_message(message)
+            update_conversation_title(conversation_id, new_title)
+            conv["title"] = new_title
+
+    # Save user message to database
+    add_message(conversation_id, "user", message)
+
     try:
+        # Build provider-independent AI context
+        context_data = build_ai_context(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            current_question=message,
+            max_recent=10
+        )
+
         llm = get_llm_provider()
-        answer, history = llm.chat(message, history)
-        return jsonify({"history": history, "answer": answer}), 200
         
+        # Generate response using provider-independent context prompt
+        try:
+            answer = llm.generate_response(context_data["full_prompt"])
+        except AttributeError:
+            answer, _ = llm.chat(message, context_data["history"])
+
+        # Save assistant response to database
+        add_message(conversation_id, "assistant", answer)
+
+        # Non-blocking memory & summary updates
+        new_memories = []
+        try:
+            new_memories = extract_and_save_memories(user_id, message)
+            maybe_update_conversation_summary(conversation_id)
+        except Exception as mem_err:
+            print(f"[MEMORY NOTE] Non-critical memory extraction note: {mem_err}")
+
+        all_memories = get_user_memories(user_id)
+
+        return jsonify({
+            "answer": answer,
+            "conversation_id": conversation_id,
+            "title": conv["title"],
+            "memories_used": context_data.get("memories_count", 0),
+            "new_memories": new_memories or [],
+            "all_memories": all_memories or []
+        }), 200
+
     except Exception as e:
         hint = get_actionable_llm_error(e)
         return jsonify({"error": f"AI Error: {e}", "hint": hint}), 500
 
 if __name__ == "__main__":
-    # Binding to 0.0.0.0 is robust for both IPv4 and IPv6 connections on local networks/machines
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.getenv("PORT", 5000))
+    debug = os.getenv("FLASK_DEBUG", "false").lower() in ("true", "1")
+    app.run(host="0.0.0.0", port=port, debug=debug)
+

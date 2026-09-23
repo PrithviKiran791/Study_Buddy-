@@ -112,26 +112,25 @@ def _configured_providers(names: list) -> list:
 
 
 def _priority_order(default_model: str) -> list:
-    if default_model == "nemotron":
-        return ["nemotron", "glm", "gemini"]
-    if default_model == "glm":
+    if default_model in ("nemotron", "nvidia", "lightning"):
+        return ["nemotron", "gemini", "glm"]
+    if default_model in ("glm", "openrouter", "glm-5.2"):
         return ["glm", "gemini", "nemotron"]
     return ["gemini", "nemotron", "glm"]
 
 
 def get_llm_provider(capability: str = "text") -> BaseAIProvider:
     """
-    Return a fallback provider chain.
-    capability='vision' uses only vision-capable providers (Gemini, GLM).
+    Return a prioritized provider chain with automatic fallback.
     """
     import config
 
-    if capability == "vision":
-        order = ["gemini", "glm"]
-    else:
-        order = _priority_order(config.DEFAULT_MODEL)
-
+    order = _priority_order(config.DEFAULT_MODEL)
     providers = _configured_providers(order)
+    if not providers:
+        raise RuntimeError(
+            "No valid AI API key found. Set NVIDIA_API_KEY, GLM_API_KEY, or GEMINI_API_KEY in .env and restart the server."
+        )
     return FallbackProvider(providers)
 
 
@@ -140,35 +139,28 @@ def get_actionable_llm_error(error: Exception) -> str:
     msg = str(error).lower()
 
     hints = []
-    if "429" in str(error) or "quota" in msg:
+    if "429" in str(error) or "quota" in msg or "rate-limited" in msg or "overloaded" in msg:
         hints.append(
-            "Gemini: Daily free-tier quota exceeded. Wait a few minutes and retry, "
-            "or check usage at https://aistudio.google.com/"
+            "AI Provider: Rate limit reached or upstream model overloaded. "
+            "Please retry in a moment, or check your API key quota."
         )
-    elif "gemini" in msg and ("403" in msg or "denied" in msg):
+    if "gemini" in msg and ("403" in msg or "denied" in msg or "invalid authentication" in msg):
         hints.append(
-            "Gemini: Your API key was denied. Create a new key at https://aistudio.google.com/apikey "
+            "Gemini: Authentication failed. Create a new key at https://aistudio.google.com/apikey "
             "and set GEMINI_API_KEY in .env."
         )
-    if "glm" in msg and ("401" in msg or "过期" in str(error) or "token" in msg):
+    if ("glm" in msg or "openrouter" in msg) and ("401" in msg or "unauthorized" in msg or "invalid_api_key" in msg):
         hints.append(
-            "GLM: Your token is expired or invalid. Generate a new key at https://open.bigmodel.cn/ "
-            "and set GLM_API_KEY in .env."
+            "GLM / OpenRouter: Your API key is invalid or expired. Check OPENROUTER_API_KEY / GLM_API_KEY in .env."
         )
-    if "nemotron" in msg or "nvidia" in msg:
-        if "403" in msg or "401" in msg or "authorization" in msg:
-            hints.append(
-                "NVIDIA: API key rejected. Generate a new key at https://build.nvidia.com/ "
-                "and set NVIDIA_MODEL=meta/llama-3.1-8b-instruct in .env."
-            )
-        elif "404" in msg:
-            hints.append(
-                "NVIDIA: Model not found. Set NVIDIA_MODEL=meta/llama-3.1-8b-instruct in .env."
-            )
+    if ("nemotron" in msg or "nvidia" in msg) and ("401" in msg or "unauthorized" in msg or "invalid_api_key" in msg):
+        hints.append(
+            "Nemotron: Your API key is invalid or expired. Check NVIDIA_API_KEY in .env."
+        )
 
     if not hints:
         hints.append(
-            "Configure at least one working provider in .env: GEMINI_API_KEY, GLM_API_KEY, or NVIDIA_API_KEY. "
+            "Configure at least one working provider in .env: NVIDIA_API_KEY, GLM_API_KEY, or GEMINI_API_KEY. "
             "Restart the server after updating."
         )
 

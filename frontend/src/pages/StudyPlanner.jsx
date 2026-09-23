@@ -5,7 +5,8 @@ import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import MarkdownViewer from '../components/MarkdownViewer'
 import { generateStudyPlan } from '../api/summarizer'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { GenerateButton } from '@/components/ui/generate-button'
 
 export default function StudyPlanner() {
   const [formData, setFormData] = useState({
@@ -153,23 +154,17 @@ export default function StudyPlanner() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Creating Plan...
-              </>
-            ) : (
-              <>
-                <Calendar className="w-5 h-5" />
-                Generate Study Plan
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <GenerateButton
+              type="submit"
+              disabled={loading}
+              isGenerating={loading}
+              hue={140}
+              text="Generate Study Plan"
+              generatingText="Creating Plan..."
+              className="w-full"
+            />
+          </div>
         </form>
       </GlassCard>
 

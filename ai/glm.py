@@ -9,13 +9,18 @@ from prompts.flashcards import get_flashcards_prompt
 from prompts.rag import get_pdf_chat_prompt, get_conversational_qa_prompt
 
 class GLMProvider(BaseAIProvider):
-    """AI Provider wrapping Zhipu AI's GLM models using their PaaS OpenAI-compatible API."""
+    """AI Provider wrapping Zhipu AI's GLM models or OpenRouter's GLM models (such as z-ai/glm-5.2:free)."""
     
-    def __init__(self, api_key: str, model_name: str = "glm-4", vision_model_name: str = "glm-4v"):
-        self.api_key = api_key
-        self.model_name = model_name
-        self.vision_model_name = vision_model_name
-        self.endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+    def __init__(self, api_key: str, model_name: str = "z-ai/glm-5.2:free", vision_model_name: str = "z-ai/glm-5.2:free"):
+        self.api_key = (api_key or "").strip()
+        self.model_name = model_name or "z-ai/glm-5.2:free"
+        self.vision_model_name = vision_model_name or self.model_name
+        
+        # Check if using OpenRouter key or an OpenRouter model name
+        if self.api_key.startswith("sk-or-") or "/" in self.model_name:
+            self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
+        else:
+            self.endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
         
     def _call_api(self, messages: List[Dict[str, any]], model_override: Optional[str] = None, temperature: float = 0.2, max_tokens: int = 2048) -> str:
         if not self.api_key:
@@ -25,6 +30,9 @@ class GLMProvider(BaseAIProvider):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
+        if "openrouter.ai" in self.endpoint:
+            headers["HTTP-Referer"] = "http://localhost:5173"
+            headers["X-Title"] = "Study Assistant"
         
         payload = {
             "model": model_override or self.model_name,
@@ -33,13 +41,35 @@ class GLMProvider(BaseAIProvider):
             "max_tokens": max_tokens
         }
         
-        response = requests.post(self.endpoint, headers=headers, json=payload, timeout=30)
-        
-        if response.status_code != 200:
-            raise Exception(f"GLM API Error ({response.status_code}): {response.text}")
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            response = requests.post(self.endpoint, headers=headers, json=payload, timeout=15)
             
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+            if response.status_code == 429 and attempt < max_attempts - 1:
+                # Upstream temporary rate limit - wait briefly and retry
+                import time
+                time.sleep(3)
+                continue
+                
+            if response.status_code != 200:
+                raise Exception(f"GLM API Error ({response.status_code}): {response.text}")
+                
+            data = response.json()
+            if "error" in data:
+                err = data["error"]
+                err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                raise Exception(f"GLM API Error: {err_msg}")
+                
+            choices = data.get("choices", [])
+            if not choices:
+                raise Exception(f"GLM API Error: No choices returned in response: {response.text}")
+                
+            msg = choices[0].get("message", {})
+            content = msg.get("content")
+            if not content:
+                content = msg.get("reasoning", "") or ""
+                
+            return content.strip()
         
     def generate_response(self, prompt: str, system_instruction: Optional[str] = None) -> str:
         messages = []
@@ -69,14 +99,17 @@ class GLMProvider(BaseAIProvider):
             messages.append({"role": "user", "content": prompt})
         else:
             for msg in history:
-                role = "user" if msg["role"] == "user" else "assistant"
-                content = msg["parts"][0]
-                messages.append({"role": role, "content": content})
+                role = "user" if msg.get("role") == "user" else "assistant"
+                if msg.get("parts") and len(msg["parts"]) > 0:
+                    content = msg["parts"][0]
+                else:
+                    content = msg.get("content", "")
+                messages.append({"role": role, "content": str(content)})
             messages.append({"role": "user", "content": question})
             
         ans = self._call_api(messages)
         
-        new_history = list(history)
+        new_history = list(history) if history else []
         if not history:
             new_history.append({"role": "user", "parts": [prompt]})
         else:
@@ -90,18 +123,19 @@ class GLMProvider(BaseAIProvider):
         
     def chat(self, message: str, history: List[Dict[str, any]]) -> Tuple[str, List[Dict[str, any]]]:
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
-        if not history:
-            messages.append({"role": "user", "content": message})
-        else:
+        if history:
             for msg in history:
-                role = "user" if msg["role"] == "user" else "assistant"
-                content = msg["parts"][0]
-                messages.append({"role": role, "content": content})
-            messages.append({"role": "user", "content": message})
+                role = "user" if msg.get("role") == "user" else "assistant"
+                if msg.get("parts") and len(msg["parts"]) > 0:
+                    content = msg["parts"][0]
+                else:
+                    content = msg.get("content", "")
+                messages.append({"role": role, "content": str(content)})
+        messages.append({"role": "user", "content": message})
             
         ans = self._call_api(messages)
         
-        new_history = list(history)
+        new_history = list(history) if history else []
         new_history.append({"role": "user", "parts": [message]})
         new_history.append({"role": "model", "parts": [ans]})
         return ans, new_history

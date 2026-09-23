@@ -19,6 +19,7 @@ import { formatDuration } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { MinimalTimer } from '@/components/ui/Counter'
 
 export default function FocusTimerWidget() {
   const location = useLocation()
@@ -37,6 +38,7 @@ export default function FocusTimerWidget() {
     switchMode,
     setIsFullscreen,
     settings,
+    totalSeconds,
   } = useFocusTimerContext()
 
   const [collapsed, setCollapsed] = useState(false)
@@ -70,9 +72,6 @@ export default function FocusTimerWidget() {
     return () => window.removeEventListener('keydown', handler)
   }, [isRunning, start, pause, restart])
 
-  const circumference = 2 * Math.PI * 42
-  const strokeOffset = circumference - (circumference * progress) / 100
-
   if (location.pathname === '/focus-center') return null
 
   return (
@@ -89,11 +88,11 @@ export default function FocusTimerWidget() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 24 }}
     >
-      <div className="glass-card overflow-hidden border-border bg-card/95 shadow-2xl backdrop-blur-xl">
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="glass-focus-bar overflow-hidden rounded-2xl transition-all duration-300">
+        <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 bg-white/5 px-3 py-2">
           <div className="flex items-center gap-2">
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-            <Badge variant="muted" className="text-[9px]">
+            <Badge variant="muted" className="text-[9px] bg-white/10 dark:bg-white/5 border border-white/10">
               {getModeLabel(mode)}
             </Badge>
           </div>
@@ -101,7 +100,7 @@ export default function FocusTimerWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className={cn('h-7 w-7', showSettings && 'bg-accent')}
+              className={cn('h-7 w-7 rounded-lg hover:bg-white/10', showSettings && 'bg-white/15')}
               onClick={() => setShowSettings(!showSettings)}
               title="Customize timer"
             >
@@ -110,7 +109,7 @@ export default function FocusTimerWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 rounded-lg hover:bg-white/10"
               onClick={() => setIsFullscreen(true)}
               title="Fullscreen focus mode"
             >
@@ -119,7 +118,7 @@ export default function FocusTimerWidget() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 rounded-lg hover:bg-white/10"
               onClick={() => setCollapsed(!collapsed)}
             >
               {collapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -137,35 +136,26 @@ export default function FocusTimerWidget() {
               className="overflow-hidden"
             >
               <div className="p-4">
-                <div className="relative mx-auto mb-4 flex h-28 w-28 items-center justify-center">
-                  <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      className="stroke-muted"
-                      strokeWidth="4"
-                      fill="transparent"
+                <div className="relative mb-4 overflow-hidden rounded-xl border border-white/20 dark:border-white/10 bg-white/10 dark:bg-white/[0.03] py-3.5 backdrop-blur-md shadow-inner">
+                  <MinimalTimer
+                    timeLeft={timeLeft}
+                    isRunning={isRunning}
+                    fontSize={44}
+                    fontWeight={300}
+                    showLabels
+                  />
+                  <div className="mt-2 text-center text-[9px] uppercase tracking-widest text-muted-foreground">
+                    Next: {getModeLabel(upcomingMode)}
+                  </div>
+
+                  {/* Glass Progress Bar */}
+                  <div className="mx-4 mt-3 h-1.5 overflow-hidden rounded-full glass-progress-track">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-primary/80 via-primary to-accent shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+                      initial={false}
+                      animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
                     />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      className="stroke-primary transition-all duration-1000 ease-linear"
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeOffset}
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <div className="font-mono text-2xl font-light tracking-tight">
-                      {formatDuration(timeLeft)}
-                    </div>
-                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Next: {getModeLabel(upcomingMode)}
-                    </div>
                   </div>
                 </div>
 
@@ -230,12 +220,31 @@ export default function FocusTimerWidget() {
               key="collapsed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center justify-between px-4 py-3"
+              className="relative flex items-center justify-between gap-3 px-4 py-2.5"
             >
-              <span className="font-mono text-lg font-light">{formatDuration(timeLeft)}</span>
-              <Button size="icon" className="h-8 w-8" onClick={isRunning ? pause : start}>
+              <MinimalTimer
+                timeLeft={timeLeft}
+                isRunning={isRunning}
+                fontSize={18}
+                fontWeight={400}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 rounded-full hover:bg-white/15 dark:hover:bg-white/10"
+                onClick={isRunning ? pause : start}
+              >
                 {isRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
               </Button>
+
+              {/* Mini Glass Progress Edge */}
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 overflow-hidden bg-white/10 dark:bg-white/5">
+                <motion.div
+                  className="h-full bg-primary"
+                  animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

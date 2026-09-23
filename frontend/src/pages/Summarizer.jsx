@@ -5,7 +5,8 @@ import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import MarkdownViewer from '../components/MarkdownViewer'
 import { summarizeText } from '../api/summarizer'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { GenerateButton } from '@/components/ui/generate-button'
 
 export default function Summarizer() {
   const [inputType, setInputType] = useState('text')
@@ -130,23 +131,16 @@ export default function Summarizer() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Summarizing...
-              </>
-            ) : (
-              <>
-                <FileText className="w-5 h-5" />
-                Summarize
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <GenerateButton
+              type="submit"
+              disabled={loading}
+              isGenerating={loading}
+              text="Generate Summary"
+              generatingText="Summarizing..."
+              className="w-full"
+            />
+          </div>
         </form>
       </GlassCard>
 

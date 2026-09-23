@@ -4,8 +4,10 @@ import { Search, Loader2, Download, Copy, Check } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import MarkdownViewer from '../components/MarkdownViewer'
+import { AIThinkingIndicator } from '../components/ai'
 import { researchTopic } from '../api/research'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { GenerateButton } from '@/components/ui/generate-button'
 
 export default function Research() {
   const [topic, setTopic] = useState('')
@@ -89,31 +91,24 @@ export default function Research() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Researching...
-              </>
-            ) : (
-              <>
-                <Search className="w-5 h-5" />
-                Generate Research
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <GenerateButton
+              type="submit"
+              disabled={loading}
+              isGenerating={loading}
+              text="Generate Research Report"
+              generatingText="Researching Topic..."
+              className="w-full"
+            />
+          </div>
         </form>
       </GlassCard>
 
       {/* Loading State */}
       {loading && (
         <GlassCard>
-          <div className="py-12">
-            <LoadingSpinner size="lg" text="Generating comprehensive research report..." />
+          <div className="py-8 flex justify-center">
+            <AIThinkingIndicator isThinking={loading} category="Research" />
           </div>
         </GlassCard>
       )}

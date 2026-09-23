@@ -4,9 +4,10 @@ import { FileText, Upload, Loader2, Send, Trash2 } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ChatMessage from '../components/ChatMessage'
-import TypingIndicator from '../components/TypingIndicator'
+import { AIThinkingIndicator } from '../components/ai'
 import { uploadPDF, chatWithPDF } from '../api/pdf'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { FileUpload } from '@/components/ui/file-upload'
 
 export default function PDFChat() {
   const [file, setFile] = useState(null)
@@ -22,12 +23,11 @@ export default function PDFChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile && selectedFile.type === 'application/pdf') {
-      setFile(selectedFile)
+  const handleFileChange = (newFiles) => {
+    if (newFiles && newFiles.length > 0) {
+      setFile(newFiles[0])
     } else {
-      toast.error('Please select a valid PDF file')
+      setFile(null)
     }
   }
 
@@ -124,37 +124,20 @@ export default function PDFChat() {
       {/* Upload Section */}
       {!sessionId && (
         <GlassCard>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Select PDF File
-              </label>
-              <div className="flex gap-4">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="pdf-upload"
-                />
-                <label
-                  htmlFor="pdf-upload"
-                  className="flex-1 glass-card p-6 cursor-pointer hover:bg-white/10 transition-all text-center border-2 border-dashed border-white/20 hover:border-accent"
-                >
-                  <Upload className="w-8 h-8 text-accent mx-auto mb-2" />
-                  <p className="text-sm text-zinc-400">
-                    {file ? file.name : 'Click to select PDF file'}
-                  </p>
-                </label>
-              </div>
-            </div>
+          <div className="space-y-6">
+            <FileUpload
+              onChange={handleFileChange}
+              accept={{ 'application/pdf': ['.pdf'] }}
+              maxFiles={1}
+            />
 
             {file && (
-              <button
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 onClick={handleUpload}
                 disabled={uploading}
-                className="btn-primary w-full flex items-center justify-center gap-2"
+                className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base font-medium shadow-lg"
               >
                 {uploading ? (
                   <>
@@ -164,10 +147,10 @@ export default function PDFChat() {
                 ) : (
                   <>
                     <Upload className="w-5 h-5" />
-                    Upload & Process
+                    Upload & Process Document
                   </>
                 )}
-              </button>
+              </motion.button>
             )}
           </div>
         </GlassCard>
@@ -215,7 +198,7 @@ export default function PDFChat() {
                   isUser={msg.isUser}
                 />
               ))}
-              {loading && <TypingIndicator />}
+              {loading && <AIThinkingIndicator isThinking={loading} category="PDF Analysis" />}
               <div ref={messagesEndRef} />
             </div>
           </GlassCard>

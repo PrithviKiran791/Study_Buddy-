@@ -23,7 +23,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import FocusTimerCustomizer from '@/components/focus/FocusTimerCustomizer'
-import { cn } from '@/lib/utils'
+import { MinimalTimer } from '@/components/ui/Counter'
 
 const QUOTES = [
   'Deep work is the superpower of the 21st century.',
@@ -45,6 +45,7 @@ export default function FocusCenter() {
     tasks,
     settings,
     upcomingMode,
+    totalSeconds,
     ambientMode,
     getModeLabel,
     updateSettings,
@@ -128,24 +129,27 @@ export default function FocusCenter() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="relative mx-auto mb-8 flex h-56 w-56 items-center justify-center">
-              <svg className="h-56 w-56 -rotate-90" viewBox="0 0 200 200">
-                <circle cx="100" cy="100" r="90" className="stroke-muted" strokeWidth="5" fill="transparent" />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="90"
-                  className="stroke-primary transition-all duration-1000 ease-linear"
-                  strokeWidth="5"
-                  fill="transparent"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 90}
-                  strokeDashoffset={2 * Math.PI * 90 - (2 * Math.PI * 90 * progress) / 100}
-                />
-              </svg>
-              <div className="absolute text-center">
-                <div className="font-mono text-5xl font-extralight tracking-tighter">
-                  {formatDuration(timeLeft)}
+            <div className="mx-auto my-6 flex max-w-xl flex-col items-center justify-center rounded-2xl glass-focus-bar py-8 shadow-2xl backdrop-blur-2xl">
+              <MinimalTimer
+                timeLeft={timeLeft}
+                isRunning={isRunning}
+                fontSize={84}
+                fontWeight={200}
+                showLabels
+              />
+
+              {/* Glass Progress Bar */}
+              <div className="mt-6 w-3/4 max-w-md">
+                <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">
+                  <span>Session Progress</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full glass-progress-track p-0.5">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-accent shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                    animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                  />
                 </div>
               </div>
             </div>

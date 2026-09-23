@@ -13,3 +13,5 @@ flask-limiter
 faiss-cpu
 sentence-transformers
 PyJWT
+firebase-admin>=6.2.0
+gunicorn>=21.2.0

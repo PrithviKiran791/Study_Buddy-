@@ -4,7 +4,8 @@ import { Sparkles, Loader2, RotateCcw, ChevronLeft, ChevronRight, Shuffle } from
 import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { generateFlashcards } from '../api/flashcards'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { GenerateButton } from '@/components/ui/generate-button'
 
 export default function Flashcards() {
   const [topic, setTopic] = useState('')
@@ -117,23 +118,17 @@ export default function Flashcards() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5" />
-                Generate Flashcards
-              </>
-            )}
-          </button>
+          <div className="pt-2">
+            <GenerateButton
+              type="submit"
+              disabled={loading}
+              isGenerating={loading}
+              hue={270}
+              text="Generate Flashcards"
+              generatingText="Generating Cards..."
+              className="w-full"
+            />
+          </div>
         </form>
       </GlassCard>
 

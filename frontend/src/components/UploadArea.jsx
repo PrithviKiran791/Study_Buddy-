@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BookOpen, FileText, CheckCircle2, Loader2, ArrowRight, Upload } from 'lucide-react'
 import { uploadPDF } from '../api/pdf'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
 export default function UploadArea({ onSuccess }) {
   const [dragActive, setDragActive] = useState(false)

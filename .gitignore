@@ -23,10 +23,14 @@ venv/
 ENV/
 env/
 
-# Environment variables
+# Environment variables & Credentials
 .env
 .env.local
 .env.*.local
+*serviceAccountKey*.json
+*service_account*.json
+firebase-credentials.json
+firebase-adminsdk*.json
 
 # IDEs
 .vscode/
@@ -49,7 +53,8 @@ logs/
 .cache/
 models/
 
-# Frontend (React/Vite)
+# Frontend (React/Vite) & Node
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/

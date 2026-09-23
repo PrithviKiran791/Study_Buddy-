@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { sendChatMessage, sendVisualQuestion } from '../api/chatbot'
 import { chatWithPDF } from '../api/pdf'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
 
 export default function useChat() {
   const [messages, setMessages] = useState([])

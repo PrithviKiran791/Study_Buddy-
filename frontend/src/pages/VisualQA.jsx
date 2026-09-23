@@ -1,11 +1,34 @@
 import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Image as ImageIcon, Loader2, Upload, X } from 'lucide-react'
+import { Image as ImageIcon, Loader2, Upload, X, Paperclip, Sparkles, FileText, Globe } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import MarkdownViewer from '../components/MarkdownViewer'
 import { sendVisualQuestion } from '../api/chatbot'
-import toast from 'react-hot-toast'
+import { toast } from '@/components/Toast'
+import { GenerateButton } from '@/components/ui/generate-button'
+import PromptBar from '@/components/ui/PromptBar'
+import { FileUpload } from '@/components/ui/file-upload'
+
+const VQA_SOURCES = [
+  { key: 'files', name: 'Photos & Diagrams', description: 'Upload visual media', icon: Paperclip, attach: true },
+  { key: 'diagram', name: 'Charts & Graphs', description: 'Trend & data analysis', icon: Sparkles },
+  { key: 'notes', name: 'Handwritten Notes', description: 'Equations & whiteboards', icon: FileText },
+  { key: 'web', name: 'Visual Knowledge', description: 'Cross-reference knowledge base', icon: Globe },
+]
+
+const VQA_COMMANDS = [
+  { key: 'explain', name: '/explain', description: 'Explain this diagram or picture in detail' },
+  { key: 'solve', name: '/solve', description: 'Solve equations or problems in image' },
+  { key: 'transcribe', name: '/transcribe', description: 'Transcribe text, equations, or code' },
+  { key: 'critique', name: '/critique', description: 'Review, check errors, and critique' },
+  { key: 'summarize', name: '/summarize', description: 'Summarize key visual takeaways' },
+]
+
+const VQA_MODELS = [
+  { key: 'gemini-1.5-flash', name: 'Gemini Vision Flash', tag: 'Fast' },
+  { key: 'gemini-1.5-pro', name: 'Gemini Vision Pro', tag: 'Deep' },
+]
 
 export default function VisualQA() {
   const [image, setImage] = useState(null)
@@ -31,6 +54,25 @@ export default function VisualQA() {
     }
   }
 
+  const handleFileUpload = (files) => {
+    if (files && files.length > 0) {
+      const file = files[0]
+      if (file.type.startsWith('image/')) {
+        setImage(file)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreview(reader.result)
+        }
+        reader.readAsDataURL(file)
+      } else {
+        toast.error('Please select a valid image file')
+      }
+    } else {
+      setImage(null)
+      setImagePreview(null)
+    }
+  }
+
   const handleRemoveImage = () => {
     setImage(null)
     setImagePreview(null)
@@ -39,22 +81,23 @@ export default function VisualQA() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const runAnalysis = async (customQuestion) => {
+    const query = (customQuestion || question || '').trim()
 
     if (!image) {
-      toast.error('Please upload an image')
+      toast.error('Please upload an image first')
+      fileInputRef.current?.click()
       return
     }
 
-    if (!question.trim()) {
+    if (!query) {
       toast.error('Please enter a question')
       return
     }
 
     setLoading(true)
     try {
-      const data = await sendVisualQuestion(image, question)
+      const data = await sendVisualQuestion(image, query)
       setResult(data)
       toast.success('Analysis complete!')
     } catch (error) {
@@ -63,6 +106,11 @@ export default function VisualQA() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault()
+    runAnalysis(question)
   }
 
   const handleReset = () => {
@@ -101,38 +149,34 @@ export default function VisualQA() {
               Upload Image
             </label>
             
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              id="image-upload"
+            />
+
             {!imagePreview ? (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="glass-card p-12 cursor-pointer hover:bg-white/10 transition-all text-center border-2 border-dashed border-white/20 hover:border-accent block"
-                >
-                  <Upload className="w-12 h-12 text-accent mx-auto mb-4" />
-                  <p className="text-zinc-400 mb-2">Click to upload an image</p>
-                  <p className="text-xs text-zinc-500">
-                    Supports JPG, PNG, WEBP, GIF
-                  </p>
-                </label>
-              </div>
+              <FileUpload
+                onChange={handleFileUpload}
+                accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'] }}
+                title="Upload Image for Analysis"
+                subtitle="Drag & drop your diagram, chart, equation, or photo here or click to browse"
+              />
             ) : (
-              <div className="relative">
+              <div className="relative border-2 border-blue-500/50 rounded-2xl overflow-hidden glass-card p-4 shadow-[0_0_25px_rgba(59,130,246,0.15)]">
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="w-full max-h-96 object-contain rounded-xl glass-card p-4"
+                  className="w-full max-h-96 object-contain rounded-xl"
                 />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 p-2 bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors"
+                  className="absolute top-4 right-4 p-2.5 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-colors shadow-lg"
+                  title="Remove image"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -140,40 +184,39 @@ export default function VisualQA() {
             )}
           </div>
 
-          {/* Question Input */}
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+          {/* Question Input via PromptBar */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-zinc-300">
               Your Question
             </label>
-            <textarea
+            <PromptBar
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="What would you like to know about this image? e.g., 'Explain this diagram', 'What's in this picture?', 'Solve this equation'..."
-              rows={4}
-              className="textarea-field"
-              disabled={loading}
+              onChange={setQuestion}
+              placeholder="What would you like to know about this image? Type '/' for actions, '@' for sources..."
+              busy={loading}
+              sources={VQA_SOURCES}
+              commands={VQA_COMMANDS}
+              models={VQA_MODELS}
+              attachments={image ? [{ name: image.name, file: image }] : []}
+              onAttach={() => fileInputRef.current?.click()}
+              onRemoveAttachment={handleRemoveImage}
+              onSend={(text) => runAnalysis(text)}
+              onStop={() => setLoading(false)}
+              sparkColor="#38bdf8"
             />
           </div>
 
           {/* Submit Button */}
-          <div className="flex gap-3">
-            <button
+          <div className="flex gap-3 items-center pt-2">
+            <GenerateButton
               type="submit"
               disabled={loading || !image || !question.trim()}
-              className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="w-5 h-5" />
-                  Analyze Image
-                </>
-              )}
-            </button>
+              isGenerating={loading}
+              hue={180}
+              text="Analyze Image"
+              generatingText="Analyzing Image..."
+              className="flex-1 w-full"
+            />
             {result && (
               <button
                 type="button"
@@ -247,20 +290,32 @@ export default function VisualQA() {
       <GlassCard>
         <h3 className="text-lg font-semibold mb-3">Example Questions:</h3>
         <ul className="space-y-2 text-sm text-zinc-400">
-          <li className="flex items-start gap-2">
-            <span className="text-accent">•</span>
+          <li
+            className="flex items-start gap-2 cursor-pointer hover:text-white transition-colors group"
+            onClick={() => setQuestion('What does this diagram explain?')}
+          >
+            <span className="text-accent group-hover:scale-125 transition-transform">•</span>
             <span>What does this diagram explain?</span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-accent">•</span>
+          <li
+            className="flex items-start gap-2 cursor-pointer hover:text-white transition-colors group"
+            onClick={() => setQuestion('Solve this math equation shown in the image')}
+          >
+            <span className="text-accent group-hover:scale-125 transition-transform">•</span>
             <span>Solve this math equation shown in the image</span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-accent">•</span>
+          <li
+            className="flex items-start gap-2 cursor-pointer hover:text-white transition-colors group"
+            onClick={() => setQuestion('Explain the chart and its trends')}
+          >
+            <span className="text-accent group-hover:scale-125 transition-transform">•</span>
             <span>Explain the chart and its trends</span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-accent">•</span>
+          <li
+            className="flex items-start gap-2 cursor-pointer hover:text-white transition-colors group"
+            onClick={() => setQuestion('What are the key elements in this scientific illustration?')}
+          >
+            <span className="text-accent group-hover:scale-125 transition-transform">•</span>
             <span>What are the key elements in this scientific illustration?</span>
           </li>
         </ul>

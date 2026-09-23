@@ -9,12 +9,11 @@ from prompts.summary import get_summary_prompt
 from prompts.flashcards import get_flashcards_prompt
 from prompts.rag import get_pdf_chat_prompt, get_conversational_qa_prompt
 
-# Models accessible on the free tier for most API keys (2.5+ often returns 403)
+# Prefer the Gemini models Google currently recommends for new users.
 DEFAULT_MODEL_CHAIN = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-2.0-flash-001",
-    "gemini-2.0-flash-lite-001",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-pro-preview",
 ]
 
 

@@ -1,12 +1,37 @@
 import axios from 'axios'
-import toast from 'react-hot-toast'
+import { auth } from '../config/firebase'
+import { toast } from '@/components/Toast'
+
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+  if (!envUrl) return '/api'
+  const trimmed = envUrl.replace(/\/+$/, '')
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`
+}
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// Request interceptor to attach Firebase ID token
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const currentUser = auth.currentUser
+      if (currentUser) {
+        const token = await currentUser.getIdToken()
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch (err) {
+      console.error('[AXIOS] Failed to fetch Firebase ID token:', err)
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -15,8 +40,10 @@ api.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response
       
-      // Handle specific error codes
-      if (status === 404) {
+      if (status === 401) {
+        // Unauthorized
+        console.warn('[AXIOS] 401 Unauthorized')
+      } else if (status === 404) {
         toast.error('Resource not found')
       } else if (status >= 500) {
         toast.error('Server error. Please try again later.')

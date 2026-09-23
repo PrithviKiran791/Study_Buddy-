@@ -5,7 +5,6 @@ import {
   MessageSquare,
   FileText,
   Search,
-  Sparkles,
   Image,
   Calendar,
   ArrowRight,
@@ -15,9 +14,31 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import AnimatedButton from '@/components/ui/animated-button'
+import FoldText from '@/components/ui/FoldText'
+import BorderGlow from '@/components/ui/BorderGlow'
+import { LoaderOne } from '@/components/ui/loader'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
+  const [pageLoading, setPageLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPageLoading(false), 600)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center font-google-sans">
+        <LoaderOne className="scale-150" />
+        <span className="mt-6 text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">
+          Loading Study Assistant...
+        </span>
+      </div>
+    )
+  }
+
   const features = [
     {
       icon: MessageSquare,
@@ -64,7 +85,7 @@ export default function Home() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background/80 backdrop-blur-[2px] relative">
       <Navbar />
 
       <section className="relative overflow-hidden">
@@ -77,26 +98,41 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Badge variant="muted" className="mb-6">
-              <Sparkles className="mr-1.5 h-3 w-3" />
-              Powered by AI
-            </Badge>
+            <div className="mb-4 flex justify-center">
+              <FoldText
+                text="Knowledge unfolds"
+                splitBy="char"
+                hinge="top"
+                trigger="mount"
+                duration={0.65}
+                stagger={0.045}
+                ease="power3.out"
+                perspective={700}
+                creaseShading={0.55}
+                fontSize={typeof window !== 'undefined' && window.innerWidth < 640 ? 44 : 64}
+                fontWeight={800}
+                color="currentColor"
+                className="text-foreground tracking-tight"
+              />
+            </div>
 
-            <h1 className="mb-6 text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-foreground to-muted-foreground md:text-6xl">
-              Your Intelligent Study Buddy
+            <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-6xl">
+              Your Intelligent Study Assistant
             </h1>
 
             <p className="mx-auto mb-8 max-w-2xl text-lg font-light text-muted-foreground md:text-xl">
-              A premium suite of AI-powered tools to help you learn faster, analyze textbooks, and ace your exams.
+              AI-powered tools to help you learn faster, analyze textbooks, and ace your exams.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" asChild>
-                <Link to="/pdf-chat">
-                  Try the PDF RAG Engine
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              <Link to="/chatbot">
+                <AnimatedButton className="h-11 px-8 text-sm font-semibold shadow-md">
+                  <span className="flex items-center gap-2">
+                    Get Started
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </AnimatedButton>
+              </Link>
               <Button variant="outline" size="lg" asChild>
                 <a href="#features">Explore Features</a>
               </Button>
@@ -109,12 +145,18 @@ export default function Home() {
                 { label: 'Languages', value: '100+' },
                 { label: 'Free to Use', value: '100%' },
               ].map((stat) => (
-                <div key={stat.label} className="glass-card p-4">
+                <BorderGlow
+                  key={stat.label}
+                  borderRadius={16}
+                  glowRadius={30}
+                  edgeSensitivity={25}
+                  className="glass-card p-4"
+                >
                   <div className="text-2xl font-bold">{stat.value}</div>
                   <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     {stat.label}
                   </div>
-                </div>
+                </BorderGlow>
               ))}
             </div>
           </motion.div>
@@ -129,7 +171,23 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="mb-12 text-center"
         >
-          <h2 className="mb-3 text-3xl font-bold tracking-tight">Powerful AI Features</h2>
+          <h2 className="mb-3 text-3xl font-bold tracking-tight">
+            <FoldText
+              text="Powerful AI Features"
+              splitBy="char"
+              hinge="top"
+              trigger="scroll"
+              duration={0.65}
+              stagger={0.035}
+              ease="power3.out"
+              perspective={700}
+              creaseShading={0.55}
+              fontSize="inherit"
+              fontWeight={700}
+              color="currentColor"
+              className="text-foreground"
+            />
+          </h2>
           <p className="text-muted-foreground">
             Everything you need to supercharge your learning journey
           </p>
@@ -145,7 +203,12 @@ export default function Home() {
               transition={{ duration: 0.4, delay: index * 0.05 }}
             >
               <Link to={feature.to} className="group block h-full">
-                <div className="glass-card-hover flex h-full flex-col p-6">
+                <BorderGlow
+                  borderRadius={18}
+                  glowRadius={36}
+                  edgeSensitivity={28}
+                  className="glass-card-hover flex h-full flex-col p-6"
+                >
                   <div className="mb-4 rounded-xl bg-muted p-3 transition-transform group-hover:scale-105 w-fit">
                     <feature.icon className="h-5 w-5 text-foreground" />
                   </div>
@@ -155,7 +218,7 @@ export default function Home() {
                     Launch Tool
                     <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </span>
-                </div>
+                </BorderGlow>
               </Link>
             </motion.div>
           ))}
@@ -164,27 +227,35 @@ export default function Home() {
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <motion.div
-          className="glass-card p-8 text-center md:p-12"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Brain className="mx-auto mb-6 h-12 w-12 text-foreground" />
-          <h2 className="mb-4 text-2xl font-bold md:text-3xl">Ready to Start Learning?</h2>
-          <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
-            No sign up required. Start using AI Study Buddy right now and transform your learning experience.
-          </p>
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" asChild>
+          <BorderGlow
+            borderRadius={24}
+            glowRadius={44}
+            edgeSensitivity={30}
+            className="glass-card p-8 text-center md:p-12"
+          >
+            <Brain className="mx-auto mb-6 h-12 w-12 text-foreground" />
+            <h2 className="mb-4 text-2xl font-bold md:text-3xl">Ready to Start Learning?</h2>
+            <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
+              No sign up required. Start using Study Assistant right now and transform your learning experience.
+            </p>
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link to="/chatbot">
-                Start Chat
-                <ArrowRight className="h-4 w-4" />
+                <AnimatedButton className="h-11 px-8 text-sm font-semibold shadow-md">
+                  <span className="flex items-center gap-2">
+                    Get Started
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </AnimatedButton>
               </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/pdf-chat">Upload PDF</Link>
-            </Button>
-          </div>
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/pdf-chat">Upload PDF</Link>
+              </Button>
+            </div>
+          </BorderGlow>
         </motion.div>
       </section>
 
@@ -193,17 +264,9 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              © 2024 AI Study Buddy. All rights reserved.
+              © 2024 Study Assistant. All rights reserved.
             </span>
           </div>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Github className="h-5 w-5" />
-          </a>
         </div>
       </footer>
     </div>

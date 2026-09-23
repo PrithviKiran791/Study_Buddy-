@@ -8,27 +8,18 @@ from prompts.summary import get_summary_prompt
 from prompts.flashcards import get_flashcards_prompt
 from prompts.rag import get_pdf_chat_prompt, get_conversational_qa_prompt
 
-# Models verified on NVIDIA API Catalog free tier
-DEFAULT_MODEL_CHAIN = [
-    "meta/llama-3.1-8b-instruct",
-    "meta/llama-3.3-70b-instruct",
-    "nvidia/nemotron-4-340b-instruct",
-    "mistralai/mistral-7b-instruct-v2.0",
-]
-
 
 class NemotronProvider(BaseAIProvider):
-    """AI Provider wrapping NVIDIA API Catalog models."""
+    """AI Provider wrapping NVIDIA Nemotron models (OpenRouter or NVIDIA API Catalog)."""
 
-    def __init__(self, api_key: str, model_name: str = "meta/llama-3.1-8b-instruct"):
-        self.api_key = api_key
-        self.endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
-        self._model_chain = (
-            [model_name] + [m for m in DEFAULT_MODEL_CHAIN if m != model_name]
-            if model_name
-            else list(DEFAULT_MODEL_CHAIN)
-        )
-        self.model_name = self._model_chain[0]
+    def __init__(self, api_key: str, model_name: str = "nvidia/nemotron-3.5-lightning:free"):
+        self.api_key = (api_key or "").strip()
+        self.model_name = model_name or "nvidia/nemotron-3.5-lightning:free"
+        
+        if self.api_key.startswith("sk-or-") or "/" in self.model_name:
+            self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
+        else:
+            self.endpoint = "https://integrate.api.nvidia.com/v1/chat/completions"
 
     def _call_api(
         self,
@@ -44,41 +35,38 @@ class NemotronProvider(BaseAIProvider):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        if "openrouter.ai" in self.endpoint:
+            headers["HTTP-Referer"] = "http://localhost:5173"
+            headers["X-Title"] = "Study Assistant"
 
-        models_to_try = [model_override] if model_override else self._model_chain
-        errors = []
+        payload = {
+            "model": model_override or self.model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
 
-        for model_name in models_to_try:
-            payload = {
-                "model": model_name,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
+        response = requests.post(self.endpoint, headers=headers, json=payload, timeout=15)
 
-            try:
-                response = requests.post(
-                    self.endpoint, headers=headers, json=payload, timeout=60
-                )
+        if response.status_code != 200:
+            raise Exception(f"Nemotron API Error ({response.status_code}): {response.text}")
 
-                if response.status_code == 200:
-                    data = response.json()
-                    self.model_name = model_name
-                    return data["choices"][0]["message"]["content"]
+        data = response.json()
+        if "error" in data:
+            err = data["error"]
+            err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+            raise Exception(f"Nemotron API Error: {err_msg}")
 
-                if response.status_code in (401, 403):
-                    raise Exception(
-                        f"NVIDIA API Error ({response.status_code}): {response.text}. "
-                        "Generate a new key at https://build.nvidia.com/"
-                    )
+        choices = data.get("choices", [])
+        if not choices:
+            raise Exception(f"Nemotron API Error: No choices returned in response: {response.text}")
 
-                errors.append(f"{model_name}: {response.status_code} {response.text[:120]}")
-            except requests.RequestException as e:
-                errors.append(f"{model_name}: {e}")
+        msg = choices[0].get("message", {})
+        content = msg.get("content")
+        if not content:
+            content = msg.get("reasoning", "") or ""
 
-        raise Exception(
-            "All NVIDIA models failed. " + ("; ".join(errors) if errors else "Check NVIDIA_API_KEY")
-        )
+        return content.strip()
 
     def generate_response(self, prompt: str, system_instruction: Optional[str] = None) -> str:
         messages = []
@@ -110,14 +98,17 @@ class NemotronProvider(BaseAIProvider):
             messages.append({"role": "user", "content": prompt})
         else:
             for msg in history:
-                role = "user" if msg["role"] == "user" else "assistant"
-                content = msg["parts"][0]
-                messages.append({"role": role, "content": content})
+                role = "user" if msg.get("role") == "user" else "assistant"
+                if msg.get("parts") and len(msg["parts"]) > 0:
+                    content = msg["parts"][0]
+                else:
+                    content = msg.get("content", "")
+                messages.append({"role": role, "content": str(content)})
             messages.append({"role": "user", "content": question})
 
         ans = self._call_api(messages)
 
-        new_history = list(history)
+        new_history = list(history) if history else []
         if not history:
             new_history.append({"role": "user", "parts": [prompt]})
         else:
@@ -131,18 +122,19 @@ class NemotronProvider(BaseAIProvider):
 
     def chat(self, message: str, history: List[Dict[str, any]]) -> Tuple[str, List[Dict[str, any]]]:
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
-        if not history:
-            messages.append({"role": "user", "content": message})
-        else:
+        if history:
             for msg in history:
-                role = "user" if msg["role"] == "user" else "assistant"
-                content = msg["parts"][0]
-                messages.append({"role": role, "content": content})
-            messages.append({"role": "user", "content": message})
+                role = "user" if msg.get("role") == "user" else "assistant"
+                if msg.get("parts") and len(msg["parts"]) > 0:
+                    content = msg["parts"][0]
+                else:
+                    content = msg.get("content", "")
+                messages.append({"role": role, "content": str(content)})
+        messages.append({"role": "user", "content": message})
 
         ans = self._call_api(messages)
 
-        new_history = list(history)
+        new_history = list(history) if history else []
         new_history.append({"role": "user", "parts": [message]})
         new_history.append({"role": "model", "parts": [ans]})
         return ans, new_history
@@ -155,6 +147,28 @@ class NemotronProvider(BaseAIProvider):
         raise ValueError("Invalid document action")
 
     def analyze_image(self, question: str, image_b64: str, mime_type: str) -> str:
-        raise NotImplementedError(
-            "NVIDIA models do not support vision processing natively. Failover triggered."
+        prompt = (
+            f"You are an expert visual assistant helping a student study. "
+            f"Carefully analyse the image and answer the following question in detail:\n\n"
+            f"Question: {question}\n\n"
+            f"If the image contains diagrams, charts, equations, or text, describe and explain them "
+            f"as part of your answer. Be educational and thorough."
         )
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{image_b64}"
+                        }
+                    }
+                ]
+            }
+        ]
+        return self._call_api(messages)

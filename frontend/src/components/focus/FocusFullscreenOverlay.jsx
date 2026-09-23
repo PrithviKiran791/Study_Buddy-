@@ -6,6 +6,7 @@ import { formatDuration } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { MinimalTimer } from '@/components/ui/Counter'
 
 const QUOTES = [
   'Deep work is the superpower of the 21st century.',
@@ -26,12 +27,10 @@ export default function FocusFullscreenOverlay() {
     start,
     pause,
     restart,
+    totalSeconds,
   } = useFocusTimerContext()
 
   const quote = QUOTES[new Date().getDate() % QUOTES.length]
-  const circumference = 2 * Math.PI * 120
-  const strokeOffset = circumference - (circumference * progress) / 100
-
   useEffect(() => {
     if (!isFullscreen) return
     const handler = (e) => {
@@ -67,41 +66,52 @@ export default function FocusFullscreenOverlay() {
         <Minimize2 className="h-5 w-5" />
       </Button>
 
-      <Badge variant="outline" className="mb-6">
+      <Badge variant="outline" className="mb-8 rounded-full border-border/60 px-4 py-1 text-xs uppercase tracking-widest text-muted-foreground backdrop-blur-md">
         {getModeLabel(mode)}
       </Badge>
 
-      <div className="relative mb-8 flex h-72 w-72 items-center justify-center">
-        <svg className="h-72 w-72 -rotate-90" viewBox="0 0 260 260">
-          <circle cx="130" cy="130" r="120" className="stroke-muted" strokeWidth="6" fill="transparent" />
-          <circle
-            cx="130"
-            cy="130"
-            r="120"
-            className="stroke-primary transition-all duration-1000 ease-linear"
-            strokeWidth="6"
-            fill="transparent"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeOffset}
-          />
-        </svg>
-        <div className="absolute text-center">
-          <div className="font-mono text-7xl font-extralight tracking-tighter">
-            {formatDuration(timeLeft)}
+      <div className="mb-10 flex flex-col items-center justify-center px-6">
+        <MinimalTimer
+          timeLeft={timeLeft}
+          isRunning={isRunning}
+          fontSize={typeof window !== 'undefined' && window.innerWidth < 640 ? 76 : 124}
+          fontWeight={200}
+          showLabels
+        />
+
+        {/* Glass Progress Bar */}
+        <div className="mt-8 w-full max-w-xs">
+          <div className="h-1.5 w-full overflow-hidden rounded-full glass-progress-track p-0.5">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-primary/80 via-primary to-accent shadow-[0_0_12px_rgba(255,255,255,0.4)]"
+              animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            />
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">{quote}</p>
         </div>
+
+        <p className="mt-8 max-w-md text-center text-sm font-light italic text-muted-foreground/80 tracking-wide">
+          “{quote}”
+        </p>
       </div>
 
-      <div className="flex gap-3">
-        <Button size="lg" onClick={isRunning ? pause : start}>
-          {isRunning ? <Pause /> : <Play />}
-          {isRunning ? 'Pause' : 'Start'}
+      <div className="flex items-center gap-3">
+        <Button
+          size="lg"
+          className="h-12 rounded-full px-8 text-sm font-medium tracking-wide shadow-lg"
+          onClick={isRunning ? pause : start}
+        >
+          {isRunning ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+          {isRunning ? 'Pause' : 'Start Focus'}
         </Button>
-        <Button variant="outline" size="lg" onClick={restart}>
-          <RotateCcw />
-          Restart
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-12 w-12 rounded-full border-border/60 hover:bg-muted/30"
+          onClick={restart}
+          title="Restart"
+        >
+          <RotateCcw className="h-4 w-4" />
         </Button>
       </div>
     </motion.div>

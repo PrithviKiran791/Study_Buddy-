@@ -5,7 +5,7 @@ import FocusFullscreenOverlay from '@/components/focus/FocusFullscreenOverlay'
 
 export default function MainLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background/80 backdrop-blur-[2px] relative">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <Outlet />
