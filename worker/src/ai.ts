@@ -113,8 +113,20 @@ export async function generateAI(
   }
 ): Promise<{ text: string; modelUsed: string }> {
   const rawModel = (options.model || env.DEFAULT_MODEL || 'gemini').toLowerCase().trim();
-  const geminiKey = env.GEMINI_API_KEY?.trim();
-  const openRouterKey = (env.OPENROUTER_API_KEY || env.NVIDIA_API_KEY || env.GLM_API_KEY)?.trim();
+  const procEnv = (globalThis as any).process?.env || {};
+  const geminiKey =
+    env.GEMINI_API_KEY?.trim() ||
+    (env as any).gemini_api_key?.trim() ||
+    procEnv.GEMINI_API_KEY?.trim() ||
+    procEnv.gemini_api_key?.trim();
+
+  const openRouterKey =
+    (env.OPENROUTER_API_KEY || env.NVIDIA_API_KEY || env.GLM_API_KEY)?.trim() ||
+    (env as any).openrouter_api_key?.trim() ||
+    (env as any).nvidia_api_key?.trim() ||
+    procEnv.OPENROUTER_API_KEY?.trim() ||
+    procEnv.NVIDIA_API_KEY?.trim() ||
+    procEnv.openrouter_api_key?.trim();
 
   // Forgiving typo resolution for GEMINI_MODEL / GEMINI_MCDEL
   const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-1.5-flash';
