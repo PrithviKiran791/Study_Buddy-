@@ -20,8 +20,11 @@ export function chunkText(text: string, chunkSize = 1000, overlap = 200): string
   return chunks;
 }
 
+// In-memory cache for PDF sessions when D1 is not configured or as fast tier
+const memorySessionStore = new Map<string, string[]>();
+
 export async function processAndStorePDF(
-  db: D1Database,
+  db: D1Database | undefined,
   pdfBuffer: ArrayBuffer,
   filename: string
 ): Promise<{ sessionId: string; totalChunks: number; totalPages: number }> {
@@ -33,44 +36,66 @@ export async function processAndStorePDF(
 
   const chunks = chunkText(fullText);
 
-  await db
-    .prepare(`
-      INSERT INTO pdf_documents (id, session_id, filename, total_pages)
-      VALUES (?, ?, ?, ?)
-    `)
-    .bind(crypto.randomUUID(), sessionId, filename, totalPages)
-    .run();
+  // Store in memory cache for immediate querying
+  memorySessionStore.set(sessionId, chunks);
 
-  const statements = chunks.map((chunk, index) =>
-    db
-      .prepare(`
-        INSERT INTO pdf_chunks (id, session_id, chunk_index, text)
-        VALUES (?, ?, ?, ?)
-      `)
-      .bind(crypto.randomUUID(), sessionId, index, chunk)
-  );
+  if (db) {
+    try {
+      await db
+        .prepare(`
+          INSERT INTO pdf_documents (id, session_id, filename, total_pages)
+          VALUES (?, ?, ?, ?)
+        `)
+        .bind(crypto.randomUUID(), sessionId, filename, totalPages)
+        .run();
 
-  // Batch insert chunks
-  for (let i = 0; i < statements.length; i += 25) {
-    const batch = statements.slice(i, i + 25);
-    await db.batch(batch);
+      const statements = chunks.map((chunk, index) =>
+        db
+          .prepare(`
+            INSERT INTO pdf_chunks (id, session_id, chunk_index, text)
+            VALUES (?, ?, ?, ?)
+          `)
+          .bind(crypto.randomUUID(), sessionId, index, chunk)
+      );
+
+      // Batch insert chunks
+      for (let i = 0; i < statements.length; i += 25) {
+        const batch = statements.slice(i, i + 25);
+        await db.batch(batch);
+      }
+    } catch (err) {
+      console.warn('[RAG] D1 write failed, using in-memory store:', err);
+    }
   }
 
-  return { sessionId, totalChunks: chunks.length, totalPages };
+  return { sessionId, totalChunks: chunks.length, totalPages: totalPages || 1 };
 }
 
 export async function searchPDFChunks(
-  db: D1Database,
+  db: D1Database | undefined,
   sessionId: string,
   query: string,
   topK = 4
 ): Promise<string[]> {
-  const result = await db
-    .prepare('SELECT text FROM pdf_chunks WHERE session_id = ?')
-    .bind(sessionId)
-    .all<{ text: string }>();
+  let allChunks: { text: string }[] = [];
 
-  const allChunks = result.results || [];
+  if (db) {
+    try {
+      const result = await db
+        .prepare('SELECT text FROM pdf_chunks WHERE session_id = ?')
+        .bind(sessionId)
+        .all<{ text: string }>();
+      allChunks = result.results || [];
+    } catch (err) {
+      console.warn('[RAG] D1 query failed, using in-memory store:', err);
+    }
+  }
+
+  // Fallback to in-memory session store
+  if (allChunks.length === 0 && memorySessionStore.has(sessionId)) {
+    allChunks = (memorySessionStore.get(sessionId) || []).map((text) => ({ text }));
+  }
+
   if (allChunks.length === 0) return [];
 
   const queryTerms = query

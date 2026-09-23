@@ -294,10 +294,6 @@ app.post('/api/generate-study-plan', async (c) => {
 
 app.post('/api/upload-pdf', async (c) => {
   try {
-    if (!c.env.DB) {
-      return c.json({ error: 'D1 Database binding not configured' }, 503);
-    }
-
     const formData = await c.req.formData();
     const file = formData.get('file') as File | null;
 
