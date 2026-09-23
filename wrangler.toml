@@ -1,0 +1,20 @@
+name = "study-buddy"
+main = "worker/src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./frontend/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "study-buddy-db"
+database_id = "study-buddy-db"
+
+[vars]
+DEFAULT_MODEL = "gemini"
+GEMINI_MODEL = "gemini-1.5-flash"
+FIREBASE_PROJECT_ID = "studyassistant-26fb6"

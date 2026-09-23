@@ -1,0 +1,10 @@
+{
+  "name": "study-buddy-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "deploy": "npx wrangler deploy",
+    "worker:check": "tsc -p worker/tsconfig.json --noEmit"
+  }
+}

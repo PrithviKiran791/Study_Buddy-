@@ -60,6 +60,8 @@ models/
 # Frontend (React/Vite) & Node
 node_modules/
 frontend/node_modules/
+worker/node_modules/
+.wrangler/
 frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
