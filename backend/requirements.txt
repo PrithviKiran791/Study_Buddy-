@@ -6,7 +6,6 @@ torch
 sentencepiece
 requests
 beautifulsoup4
-marked
 python-dotenv
 pymupdf
 flask-limiter

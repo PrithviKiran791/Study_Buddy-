@@ -194,6 +194,16 @@ limiter = Limiter(
 # Shared memory session stores for PDF system (in production, use Redis or SQLite)
 pdf_rag_sessions = {}
 
+@app.route("/api/health", methods=["GET"])
+@limiter.exempt
+def health_check():
+    """Lightweight health check endpoint for Docker container monitors and load balancers."""
+    return jsonify({
+        "status": "healthy",
+        "service": "study-buddy-backend",
+        "version": "2.0.0"
+    }), 200
+
 # --- Lazy Loading for Hugging Face Models ---
 _question_generator = None
 _summarizer = None
