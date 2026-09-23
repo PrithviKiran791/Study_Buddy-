@@ -27,6 +27,10 @@ env/
 .env
 .env.local
 .env.*.local
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
 *serviceAccountKey*.json
 *service_account*.json
 firebase-credentials.json

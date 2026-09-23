@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Ensure backend root directory is on sys.path for robust relative module imports
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import pipeline, T5ForConditionalGeneration, T5Tokenizer, AutoModelForQuestionAnswering, AutoTokenizer
@@ -5,7 +13,6 @@ import textwrap
 import json
 import requests
 from bs4 import BeautifulSoup
-import os
 from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address

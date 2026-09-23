@@ -14,7 +14,7 @@ if errorlevel 1 (
 echo.
 
 echo [2/4] Installing Python dependencies...
-pip install -r requirements.txt
+pip install -r backend\requirements.txt
 if errorlevel 1 (
     echo ERROR: Failed to install Python dependencies
     pause

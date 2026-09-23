@@ -1,12 +1,27 @@
 import os
+import sys
 import sqlite3
 from typing import Optional
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# Ensure backend root is on sys.path
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+# Load environment variables: check backend/.env first, then root .env
+_backend_env = os.path.join(BACKEND_DIR, ".env")
+_root_env = os.path.join(os.path.dirname(BACKEND_DIR), ".env")
+if os.path.exists(_backend_env):
+    load_dotenv(_backend_env, override=True)
+elif os.path.exists(_root_env):
+    load_dotenv(_root_env, override=True)
+else:
+    load_dotenv(override=True)
 
 # Database Configuration (supports Railway persistent volume e.g. /data/study_buddy.db)
-DATABASE_FILE = os.getenv("DATABASE_FILE", "study_buddy.db")
+_DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "study_buddy.db")
+DATABASE_FILE = os.getenv("DATABASE_FILE", _DEFAULT_DB_PATH)
 
 def get_db_connection():
     """Return a connection to the configured SQLite database, auto-creating directory if necessary."""

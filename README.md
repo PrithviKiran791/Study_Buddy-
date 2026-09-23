@@ -417,51 +417,85 @@ CREATE TABLE IF NOT EXISTS user_memory (
 ## Project Directory Structure
 
 ```text
-Study_assistant/
-├── app.py                         # Flask REST API Server & Route Handlers
-├── rag_engine.py                  # PyMuPDF + FAISS / TF-IDF Vector RAG Engine
-├── config.py                      # Provider Status & Configuration Loader
-├── requirements.txt               # Backend Python Dependencies
-├── study_buddy.db                 # Embedded SQLite Database
-├── .env                           # Backend Secret Environment Variables
+Study_Buddy/
 │
-├── ai/                            # Multi-Provider AI Engine
-│   ├── factory.py                 # Autonomous Fallback Provider Factory
-│   ├── provider.py                # Abstract Base AI Provider Class
-│   ├── gemini.py                  # Google Gemini SDK Integration
-│   ├── nemotron.py                # NVIDIA Nemotron (OpenRouter) Integration
-│   └── glm.py                     # Zhipu GLM 5.2 (OpenRouter) Integration
+├── backend/                           # Python 3.12 / Flask Backend Root
+│   ├── app.py                         # Flask REST API Server & Route Handlers
+│   ├── config.py                      # Centralized Configuration & SQLite Helper
+│   ├── rag_engine.py                  # PyMuPDF + FAISS Vector RAG Engine
+│   ├── requirements.txt               # Backend Python Dependencies
+│   ├── Procfile                       # Production WSGI Server Start Command (Railway)
+│   ├── .env.example                   # Backend Environment Variables Template
+│   │
+│   ├── ai/                            # Multi-Provider AI Engine
+│   │   ├── __init__.py
+│   │   ├── factory.py                 # Autonomous Fallback Provider Factory
+│   │   ├── provider.py                # Abstract Base AI Provider Class
+│   │   ├── gemini.py                  # Google Gemini SDK Integration
+│   │   ├── nemotron.py                # NVIDIA Nemotron (OpenRouter) Integration
+│   │   └── glm.py                     # Zhipu GLM 5.2 (OpenRouter) Integration
+│   │
+│   ├── auth/                          # Authentication Layer
+│   │   ├── __init__.py
+│   │   └── firebase_auth.py           # Token Verification & SQLite User Sync Decorator
+│   │
+│   ├── services/memory/               # Persistent AI Memory Engine
+│   │   ├── __init__.py
+│   │   ├── context_builder.py         # Multi-Context Prompt Assembler
+│   │   ├── memory_extractor.py        # Dynamic User Preference & Goal Extractor
+│   │   ├── conversation_service.py    # Session & Message CRUD Service
+│   │   ├── profile_service.py         # User Memory CRUD Service
+│   │   └── summary_service.py         # Automatic Conversation Summarizer
+│   │
+│   ├── prompts/                       # Modular Prompt Templates
+│   │   ├── __init__.py
+│   │   ├── chat.py                    # AI Tutor Prompts
+│   │   ├── flashcards.py              # Flashcard Extraction Prompts
+│   │   ├── planner.py                 # Study Plan Generator Prompts
+│   │   ├── rag.py                     # Document QA Prompts
+│   │   ├── research.py                # Deep-Dive Academic Prompts
+│   │   └── summary.py                 # Text Summarization Prompts
+│   │
+│   ├── static/                        # Backend Static Assets
+│   │   └── css/style.css
+│   │
+│   └── tests/                         # Backend Test Suite
+│       ├── __init__.py
+│       ├── test_model_config.py
+│       └── test_production_config.py
 │
-├── auth/                          # Authentication Layer
-│   └── firebase_auth.py           # Token Verification & SQLite User Sync Decorator
+├── frontend/                          # React 19 / Vite 6 Frontend Root
+│   ├── package.json                   # Node Dependencies & Build Scripts
+│   ├── package-lock.json
+│   ├── vite.config.js                 # Vite 6 Bundler Configuration
+│   ├── tailwind.config.js             # Tailwind Design System Configuration
+│   ├── postcss.config.js              # PostCSS Configuration
+│   ├── tsconfig.json                  # TypeScript Configuration
+│   ├── index.html                     # HTML Entry Point
+│   ├── vercel.json                    # Vercel SPA Routing Rewrites
+│   ├── .env.example                   # Frontend Environment Variables Template
+│   │
+│   ├── public/                        # Static Public Assets (open-book.png)
+│   │
+│   └── src/
+│       ├── api/                       # Axios API Service Modules & Interceptors
+│       ├── assets/                    # Static Assets
+│       ├── components/                # UI Primitives, Modals, & AI Animations
+│       ├── context/                   # AuthContext & ThemeContext Providers
+│       ├── hooks/                     # Custom React Hooks (useChat, useAuth)
+│       ├── layouts/                   # Layout Wrappers (MainLayout)
+│       ├── lib/                       # Utility Functions (cn helper)
+│       ├── pages/                     # Full Page Views
+│       ├── App.jsx                    # Router, ProtectedRoute, & Toast Root
+│       └── main.jsx                   # React DOM Entry Point
 │
-├── services/memory/               # Persistent AI Memory Engine
-│   ├── context_builder.py         # Multi-Context Prompt Assembler
-│   ├── memory_extractor.py        # Dynamic User Preference & Goal Extractor
-│   ├── conversation_service.py    # Session & Message CRUD Service
-│   ├── profile_service.py         # User Memory CRUD Service
-│   └── summary_service.py         # Automatic Conversation Summarizer
+├── .github/workflows/
+│   └── node.js.yml                    # Automated Frontend CI Workflow
 │
-├── prompts/                       # Modular Prompt Templates
-│   ├── chat.py                    # AI Tutor Prompts
-│   ├── flashcards.py              # Flashcard Extraction Prompts
-│   ├── planner.py                 # Study Plan Generator Prompts
-│   ├── rag.py                     # Document QA Prompts
-│   ├── research.py                # Deep-Dive Academic Prompts
-│   └── summary.py                 # Text Summarization Prompts
-│
-└── frontend/                      # React 19 Frontend Root
-    ├── package.json               # Node Dependencies & Build Scripts
-    ├── vite.config.js             # Vite 6 Bundler Configuration
-    ├── tailwind.config.js         # Tailwind Design System Configuration
-    └── src/
-        ├── App.jsx                # Router, ProtectedRoute, & Route Lazy Loading
-        ├── main.jsx               # React DOM Entry Point
-        ├── api/                   # Axios API Service Modules
-        ├── components/            # UI Primitives, Modals, & AI Animations
-        ├── context/               # AuthContext State Provider
-        ├── pages/                 # Full Page Views
-        └── lib/                   # Utility Functions (cn helper)
+├── .gitignore                         # Comprehensive Monorepo Git Ignore
+├── .env.example                       # Root Environment Template
+├── README.md                          # Full Project Documentation
+└── LICENSE                            # MIT License
 ```
 
 ---
