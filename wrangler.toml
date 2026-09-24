@@ -18,6 +18,6 @@ run_worker_first = true
 # database_id = "your-database-id-uuid-here"
 
 [vars]
-DEFAULT_MODEL = "gemini"
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_MODEL = "gemma"
+OPENROUTER_MODEL = "google/gemma-4-26b-a4b-it"
 FIREBASE_PROJECT_ID = "studyassistant-26fb6"
