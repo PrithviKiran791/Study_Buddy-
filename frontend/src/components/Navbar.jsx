@@ -153,8 +153,8 @@ export default function Navbar() {
               </div>
             ) : (
               <Link to="/login">
-                <LiquidButton size="sm" className="px-4 py-2 font-bold uppercase tracking-wider text-xs">
-                  <LogIn className="w-3.5 h-3.5 mr-1" />
+                <LiquidButton size="md" className="px-5 py-2.5 font-bold uppercase tracking-wider text-xs sm:text-sm shadow-md hover:scale-105 transition-transform">
+                  <LogIn className="w-4 h-4 mr-1.5" />
                   <span>Sign In</span>
                 </LiquidButton>
               </Link>
@@ -199,9 +199,9 @@ export default function Navbar() {
               <Link
                 to="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 w-full mt-3 px-5 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider"
+                className="flex items-center justify-center gap-2.5 w-full mt-3 px-6 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm uppercase tracking-wider shadow-lg hover:scale-[1.02] transition-all"
               >
-                <LogIn size={16} /> Sign In
+                <LogIn size={18} /> Sign In
               </Link>
             ) : (
               <div className="pt-2 border-t border-border/50 mt-2 space-y-2">
