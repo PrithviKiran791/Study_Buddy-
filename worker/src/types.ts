@@ -3,6 +3,7 @@ export interface Env {
   ASSETS: Fetcher;
   GEMINI_API_KEY?: string;
   OPENROUTER_API_KEY?: string;
+  OPENROUTER_MODEL?: string;
   NVIDIA_API_KEY?: string;
   GLM_API_KEY?: string;
   DEFAULT_MODEL?: string;

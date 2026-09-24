@@ -156,15 +156,8 @@ export async function generateAI(
     inlineImage?: { mimeType: string; base64: string };
   }
 ): Promise<{ text: string; modelUsed: string }> {
-  const rawModel = (options.model || env.DEFAULT_MODEL || 'gemini').toLowerCase().trim();
+  const rawModel = (options.model || env.DEFAULT_MODEL || 'gemma').toLowerCase().trim();
   const procEnv = (globalThis as any).process?.env || {};
-  const FALLBACK_GEMINI_KEY = atob('QVEuQWI4Uk42Skd6ZkZ0bHRycThXSDE5NkxVZXZPREMwclpDY0g2V29ra0lRMEtuMGJ1TUE=');
-  const geminiKey =
-    env.GEMINI_API_KEY?.trim() ||
-    (env as any).gemini_api_key?.trim() ||
-    procEnv.GEMINI_API_KEY?.trim() ||
-    procEnv.gemini_api_key?.trim() ||
-    FALLBACK_GEMINI_KEY;
 
   const openRouterKey =
     (env.OPENROUTER_API_KEY || env.NVIDIA_API_KEY || env.GLM_API_KEY)?.trim() ||
@@ -174,45 +167,27 @@ export async function generateAI(
     procEnv.NVIDIA_API_KEY?.trim() ||
     procEnv.openrouter_api_key?.trim();
 
-  // Forgiving typo resolution for GEMINI_MODEL / GEMINI_MCDEL
-  const geminiModel = (env as any).GEMINI_MODEL || (env as any).GEMINI_MCDEL || 'gemini-3.5-flash-lite';
+  const geminiKey =
+    env.GEMINI_API_KEY?.trim() ||
+    (env as any).gemini_api_key?.trim() ||
+    procEnv.GEMINI_API_KEY?.trim() ||
+    procEnv.gemini_api_key?.trim();
 
-  // Normalize model provider intent
-  const isGemini =
-    rawModel.includes('gemini') ||
-    rawModel.includes('gamini') ||
-    rawModel.includes('google') ||
-    (!rawModel.includes('/') && !rawModel.includes('nemotron') && !rawModel.includes('glm'));
-
+  const geminiModel = (env as any).GEMINI_MODEL || 'gemini-3.5-flash-lite';
   const errors: string[] = [];
 
-  // 1. Try Gemini
-  if (isGemini && geminiKey) {
-    try {
-      const text = await callGemini(
-        geminiKey,
-        geminiModel,
-        options.prompt,
-        options.systemInstruction,
-        options.inlineImage
-      );
-      return { text, modelUsed: geminiModel };
-    } catch (err: any) {
-      console.warn('[AI] Gemini failed:', err.message);
-      errors.push(`Gemini: ${err.message}`);
-    }
-  }
-
-  // 2. Try OpenRouter
+  // 1. Primary: Try OpenRouter (Gemma 4 / Nemotron / GLM)
   if (openRouterKey && !options.inlineImage) {
     try {
-      let openRouterModel = 'nvidia/nemotron-3.5-lightning:free';
+      let openRouterModel = env.OPENROUTER_MODEL || 'google/gemma-4-26b-a4b-it';
       if (rawModel.includes('/')) {
         openRouterModel = rawModel;
       } else if (rawModel.includes('glm')) {
         openRouterModel = env.GLM_MODEL || 'z-ai/glm-5.2:free';
-      } else if (rawModel.includes('nemotron') || env.NVIDIA_MODEL) {
+      } else if (rawModel.includes('nemotron')) {
         openRouterModel = env.NVIDIA_MODEL || 'nvidia/nemotron-3.5-lightning:free';
+      } else if (rawModel.includes('gemma') || rawModel.includes('google') || rawModel.includes('openrouter')) {
+        openRouterModel = env.OPENROUTER_MODEL || 'google/gemma-4-26b-a4b-it';
       }
 
       const text = await callOpenRouter(
@@ -228,8 +203,8 @@ export async function generateAI(
     }
   }
 
-  // 3. Fallback to Gemini if OpenRouter was primary but failed
-  if (!isGemini && geminiKey) {
+  // 2. Fallback: Try Gemini if Gemini key is available
+  if (geminiKey) {
     try {
       const text = await callGemini(
         geminiKey,
@@ -240,8 +215,8 @@ export async function generateAI(
       );
       return { text, modelUsed: geminiModel };
     } catch (err: any) {
-      console.error('[AI] Gemini fallback also failed:', err.message);
-      errors.push(`Gemini fallback: ${err.message}`);
+      console.warn('[AI] Gemini failed:', err.message);
+      errors.push(`Gemini: ${err.message}`);
     }
   }
 
@@ -250,7 +225,7 @@ export async function generateAI(
   }
 
   throw new Error(
-    'No valid AI API keys found. Please set GEMINI_API_KEY or OPENROUTER_API_KEY in Cloudflare Worker Variables & Secrets.'
+    'No working AI API keys found. Please set OPENROUTER_API_KEY in Cloudflare Worker Variables & Secrets.'
   );
 }
 

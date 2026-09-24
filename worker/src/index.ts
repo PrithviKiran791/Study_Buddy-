@@ -66,12 +66,12 @@ app.get('/api/health', (c) => {
 
 app.get('/api/models', (c) => {
   return c.json({
-    default: c.env.DEFAULT_MODEL || 'gemini',
+    default: c.env.DEFAULT_MODEL || 'gemma',
     available: [
       {
-        id: 'gemini',
-        name: 'Google Gemini 1.5 Flash',
-        provider: 'Google',
+        id: 'gemma',
+        name: 'Google Gemma 4 26B',
+        provider: 'OpenRouter',
         speed: 'Ultra Fast',
         free: true,
       },
