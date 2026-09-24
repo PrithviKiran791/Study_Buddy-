@@ -1,6 +1,6 @@
 import time
 from ai.provider import BaseAIProvider
-from ai.gemini import GeminiProvider
+from ai.gemma import GemmaProvider
 from ai.nemotron import NemotronProvider
 from ai.glm import GLMProvider
 
@@ -22,7 +22,7 @@ class FallbackProvider(BaseAIProvider):
         if not providers:
             raise ValueError(
                 "No LLM providers are configured. Add at least one valid API key to your .env file. "
-                "See .env.example for GEMINI_API_KEY, NVIDIA_API_KEY, or GLM_API_KEY."
+                "See .env.example for OPENROUTER_API_KEY, NVIDIA_API_KEY, or GLM_API_KEY."
             )
         self.providers = providers
 
@@ -79,10 +79,11 @@ class FallbackProvider(BaseAIProvider):
 def _build_provider_cache():
     import config
 
-    if "gemini" not in _cached_providers:
-        _cached_providers["gemini"] = GeminiProvider(
-            api_key=config.GEMINI_API_KEY,
-            model_name=config.GEMINI_MODEL,
+    if "gemma" not in _cached_providers:
+        _cached_providers["gemma"] = GemmaProvider(
+            api_key=config.OPENROUTER_API_KEY,
+            model_name=config.OPENROUTER_MODEL,
+            timeout=config.OPENROUTER_TIMEOUT,
         )
 
     if "nemotron" not in _cached_providers:
@@ -105,7 +106,11 @@ def _configured_providers(names: list) -> list:
     _build_provider_cache()
     configured = []
     for name in names:
-        key_map = {"gemini": config.GEMINI_API_KEY, "nemotron": config.NVIDIA_API_KEY, "glm": config.GLM_API_KEY}
+        key_map = {
+            "gemma": config.OPENROUTER_API_KEY,
+            "nemotron": config.NVIDIA_API_KEY,
+            "glm": config.GLM_API_KEY,
+        }
         if config.is_valid_api_key(key_map.get(name)):
             configured.append(_cached_providers[name])
     return configured
@@ -113,10 +118,10 @@ def _configured_providers(names: list) -> list:
 
 def _priority_order(default_model: str) -> list:
     if default_model in ("nemotron", "nvidia", "lightning"):
-        return ["nemotron", "gemini", "glm"]
-    if default_model in ("glm", "openrouter", "glm-5.2"):
-        return ["glm", "gemini", "nemotron"]
-    return ["gemini", "nemotron", "glm"]
+        return ["nemotron", "gemma", "glm"]
+    if default_model in ("glm", "glm-5.2"):
+        return ["glm", "gemma", "nemotron"]
+    return ["gemma", "nemotron", "glm"]
 
 
 def get_llm_provider(capability: str = "text") -> BaseAIProvider:
@@ -129,7 +134,7 @@ def get_llm_provider(capability: str = "text") -> BaseAIProvider:
     providers = _configured_providers(order)
     if not providers:
         raise RuntimeError(
-            "No valid AI API key found. Set NVIDIA_API_KEY, GLM_API_KEY, or GEMINI_API_KEY in .env and restart the server."
+            "No valid AI API key found. Set OPENROUTER_API_KEY, NVIDIA_API_KEY, or GLM_API_KEY in .env and restart the server."
         )
     return FallbackProvider(providers)
 
@@ -144,14 +149,10 @@ def get_actionable_llm_error(error: Exception) -> str:
             "AI Provider: Rate limit reached or upstream model overloaded. "
             "Please retry in a moment, or check your API key quota."
         )
-    if "gemini" in msg and ("403" in msg or "denied" in msg or "invalid authentication" in msg):
+    if ("gemma" in msg or "openrouter" in msg) and ("401" in msg or "unauthorized" in msg or "invalid_api_key" in msg):
         hints.append(
-            "Gemini: Authentication failed. Create a new key at https://aistudio.google.com/apikey "
-            "and set GEMINI_API_KEY in .env."
-        )
-    if ("glm" in msg or "openrouter" in msg) and ("401" in msg or "unauthorized" in msg or "invalid_api_key" in msg):
-        hints.append(
-            "GLM / OpenRouter: Your API key is invalid or expired. Check OPENROUTER_API_KEY / GLM_API_KEY in .env."
+            "OpenRouter Gemma 4: Your API key is invalid or expired. Create a key at https://openrouter.ai/settings/keys "
+            "and set OPENROUTER_API_KEY in backend/.env."
         )
     if ("nemotron" in msg or "nvidia" in msg) and ("401" in msg or "unauthorized" in msg or "invalid_api_key" in msg):
         hints.append(
@@ -160,8 +161,9 @@ def get_actionable_llm_error(error: Exception) -> str:
 
     if not hints:
         hints.append(
-            "Configure at least one working provider in .env: NVIDIA_API_KEY, GLM_API_KEY, or GEMINI_API_KEY. "
+            "Configure at least one working provider in .env: OPENROUTER_API_KEY, NVIDIA_API_KEY, or GLM_API_KEY. "
             "Restart the server after updating."
         )
 
     return " ".join(hints)
+

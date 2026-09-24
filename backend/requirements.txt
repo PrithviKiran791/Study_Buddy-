@@ -1,7 +1,6 @@
 flask
 flask-cors
 transformers
-google-generativeai
 torch
 sentencepiece
 requests

@@ -6,7 +6,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from transformers import pipeline, T5ForConditionalGeneration, T5Tokenizer, AutoModelForQuestionAnswering, AutoTokenizer
 import textwrap
@@ -194,15 +194,6 @@ limiter = Limiter(
 # Shared memory session stores for PDF system (in production, use Redis or SQLite)
 pdf_rag_sessions = {}
 
-@app.route("/api/health", methods=["GET"])
-@limiter.exempt
-def health_check():
-    """Lightweight health check endpoint for Docker container monitors and load balancers."""
-    return jsonify({
-        "status": "healthy",
-        "service": "study-buddy-backend",
-        "version": "2.0.0"
-    }), 200
 
 # --- Lazy Loading for Hugging Face Models ---
 _question_generator = None
@@ -244,6 +235,7 @@ def home():
     return jsonify({"message": "AI Study Buddy API", "version": "2.0", "status": "running"})
 
 @app.route("/api/health", methods=["GET"])
+@limiter.exempt
 def health_check():
     db_ok = False
     try:
@@ -592,7 +584,7 @@ def visual_qa():
     except Exception as e:
         return jsonify({"error": f"Could not read image: {e}"}), 400
 
-    # Send to LLM Provider (vision-capable chain: Gemini → GLM)
+    # Send to LLM Provider (vision-capable chain: Gemma -> GLM)
     try:
         llm = get_llm_provider(capability="vision")
         answer = llm.analyze_image(question, image_b64, mime_type)
@@ -605,9 +597,8 @@ def visual_qa():
 
     except Exception as e:
         hint = get_actionable_llm_error(e)
-        return jsonify({"error": f"Gemini Vision Error: {e}", "hint": hint}), 500
+        return jsonify({"error": f"Vision AI Error: {e}", "hint": hint}), 500
 
-# 11. General Chatbot API
 # 11. Auth & User Profile API
 @app.route("/api/user/me", methods=["GET"])
 @require_auth
@@ -666,13 +657,14 @@ def remove_all_memories():
     clear_user_memories(request.user["id"])
     return jsonify({"success": True, "message": "All AI learning memories cleared"}), 200
 
-# 14. General Chatbot API (Authenticated & Memory-Aware)
+# 14. General Chatbot API (Authenticated, Memory-Aware & Streaming-Compatible)
 @app.route("/api/chat", methods=["POST"])
 @require_auth
 def chat():
     data = request.get_json() or {}
     message = data.get("message", "").strip()
     conversation_id = data.get("conversation_id")
+    stream_requested = data.get("stream", False)
     user_id = request.user["id"]
     
     if not message:
@@ -708,8 +700,33 @@ def chat():
         )
 
         llm = get_llm_provider()
-        
-        # Generate response using provider-independent context prompt
+
+        # Handle streaming request if requested by client
+        if stream_requested and hasattr(llm, "stream_chat"):
+            def generate_stream():
+                accumulated_answer = []
+                try:
+                    for chunk in llm.stream_chat(message, context_data["history"], system_instruction=context_data["full_prompt"]):
+                        accumulated_answer.append(chunk)
+                        yield f"data: {json.dumps({'token': chunk})}\n\n"
+                    
+                    full_text = "".join(accumulated_answer)
+                    add_message(conversation_id, "assistant", full_text)
+
+                    try:
+                        extract_and_save_memories(user_id, message)
+                        maybe_update_conversation_summary(conversation_id)
+                    except Exception as mem_err:
+                        print(f"[MEMORY NOTE] Memory update note during stream: {mem_err}")
+
+                    yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id, 'title': conv['title']})}\n\n"
+                    yield "data: [DONE]\n\n"
+                except Exception as err:
+                    yield f"data: {json.dumps({'error': str(err)})}\n\n"
+
+            return Response(stream_with_context(generate_stream()), mimetype="text/event-stream")
+
+        # Standard non-streaming generation
         try:
             answer = llm.generate_response(context_data["full_prompt"])
         except AttributeError:
@@ -740,6 +757,7 @@ def chat():
     except Exception as e:
         hint = get_actionable_llm_error(e)
         return jsonify({"error": f"AI Error: {e}", "hint": hint}), 500
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))

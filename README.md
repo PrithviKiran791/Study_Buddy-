@@ -4,7 +4,7 @@
 
 Study Buddy is a full-stack educational platform built for students and researchers. It unifies conversational tutoring, document analysis, automated flashcard generation, multimodal visual QA, and personalized study planning. 
 
-Powered by a resilient multi-provider AI engine featuring **Google Gemini**, **NVIDIA Nemotron 3.5 Lightning**, and **Zhipu GLM 5.2** (via OpenRouter), Study Buddy features a persistent **AI Memory Engine** that continuously remembers user preferences, study goals, and weak topics across sessions.
+Powered by a resilient multi-provider AI engine featuring **Google Gemma 4** (via OpenRouter), **NVIDIA Nemotron 3.5 Lightning**, and **Zhipu GLM 5.2**, Study Buddy features a persistent **AI Memory Engine** that continuously remembers user preferences, study goals, and weak topics across sessions.
 
 ---
 
@@ -44,11 +44,11 @@ Modern students and professionals often juggle multiple disconnected tools: sear
 
 | Feature | Description |
 | :--- | :--- |
-| **Conversational AI Tutor** | Multi-turn study tutor with subject filtering, LaTeX math rendering, code highlighting, and thinking state indicators. |
+| **Conversational AI Tutor** | Multi-turn study tutor powered by OpenRouter Gemma 4 with subject filtering, LaTeX math rendering, code highlighting, and streaming indicators. |
 | **Persistent AI Memory** | Automatically captures learning goals, explanation styles, and weak topics; displays live memory badges and personalization indicators on responses. |
 | **PDF Chat (RAG)** | Upload PDF documents to extract text, build vector embeddings via TF-IDF & FAISS, and query contents with grounded citations. |
 | **Aceternity UI File Upload** | Interactive dropzone with animated grid backdrops and custom blue dashed border styling for PDF Chat and Visual QA. |
-| **Multimodal Visual QA** | Upload diagrams, charts, graphs, and whiteboard notes to receive multimodal explanations powered by Gemini Vision. |
+| **Multimodal Visual QA** | Upload diagrams, charts, graphs, and whiteboard notes to receive multimodal explanations powered by Gemma 4 / Vision LLM. |
 | **Smart Summarizer** | Distill raw text, academic papers, or live web pages (scraped via BeautifulSoup) into structured key takeaways. |
 | **Topic Researcher** | Generate comprehensive, multi-section academic and professional research reports on any subject. |
 | **Interactive Flashcards** | Generate custom flashcard decks with 3D card-flip animations, keyboard shortcuts, and deck shuffling. |
@@ -89,7 +89,7 @@ flowchart TD
     end
 
     subgraph AIProviders["AI Provider Engine"]
-        Gemini["Google Gemini (gemini-3.6-flash)"]
+        Gemma["Google Gemma 4 26B (OpenRouter)"]
         Nemotron["NVIDIA Nemotron 3.5 (OpenRouter)"]
         GLM["Zhipu GLM 5.2 (OpenRouter)"]
         HF["Local HuggingFace Fallback"]
@@ -106,7 +106,7 @@ flowchart TD
     MemoryEngine --> DB
     FlaskApp --> RAGSystem
     FlaskApp --> AIFactory
-    AIFactory --> Gemini
+    AIFactory --> Gemma
     AIFactory --> Nemotron
     AIFactory --> GLM
     AIFactory -.->|"Offline Fallback"| HF
@@ -126,8 +126,8 @@ The system uses an autonomous fallback provider pattern (`ai/factory.py`). If th
                          │
        ┌─────────────────┴─────────────────┐
        ▼                                   ▼
-Primary: Gemini 3.6 Flash           Secondary: Nemotron 3.5
-(Google AI Studio)                  (NVIDIA / OpenRouter)
+Primary: Google Gemma 4             Secondary: Nemotron 3.5
+(OpenRouter: google/gemma-4-26b-a4b-it) (NVIDIA / OpenRouter)
        │                                   │
        ├────────── Success? ───────────────┤
        │ (Yes)                       (No)  │
@@ -144,9 +144,9 @@ Return Response                     Tertiary: GLM 5.2
 
 ### Supported Providers
 
-1. **Google Gemini (`GeminiProvider`)**: Primary model for high-speed instruction following and multimodal vision analysis (`gemini-3.6-flash`, `gemini-3.5-flash-lite`).
-2. **NVIDIA Nemotron (`NemotronProvider`)**: Accessed via OpenRouter (`nvidia/nemotron-3.5-lightning:free`) with support for high-throughput reasoning.
-3. **Zhipu GLM (`GLMProvider`)**: Accessed via OpenRouter (`z-ai/glm-5.2:free`) for deep reasoning and cross-lingual comprehension.
+1. **Google Gemma 4 (`GemmaProvider`)**: Primary model (`google/gemma-4-26b-a4b-it`) accessed via OpenRouter for low-latency streaming text generation and multimodal vision analysis.
+2. **NVIDIA Nemotron (`NemotronProvider`)**: Secondary model accessed via OpenRouter (`nvidia/nemotron-3.5-lightning:free`) with high-throughput reasoning.
+3. **Zhipu GLM (`GLMProvider`)**: Tertiary model accessed via OpenRouter (`z-ai/glm-5.2:free`) for deep reasoning.
 4. **Local Hugging Face Transformers**: Local offline fallback pipelines for question generation (`t5-base-qg-hl`), summarization (`BART`), and QA (`DistilBERT`).
 
 ---
@@ -545,15 +545,14 @@ cd ..
 Create a `.env` file in the root directory:
 
 ```env
-# AI Model API Keys (Server-Side Only)
-GEMINI_API_KEY=your_gemini_api_key_here
+# AI Model API Keys (Server-Side Only — NEVER expose to frontend)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-NVIDIA_API_KEY=your_openrouter_or_nvidia_key_here
-GLM_API_KEY=your_openrouter_or_glm_key_here
+NVIDIA_API_KEY=your_nvidia_api_key_here
+GLM_API_KEY=your_glm_or_openrouter_key_here
 
 # Provider Configuration
-DEFAULT_MODEL=gemini
-GEMINI_MODEL=gemini-3.6-flash
+DEFAULT_MODEL=gemma
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it
 NVIDIA_MODEL=nvidia/nemotron-3.5-lightning:free
 GLM_MODEL=z-ai/glm-5.2:free
 GLM_VISION_MODEL=z-ai/glm-5.2:free
@@ -609,9 +608,10 @@ Railway hosts the Python/Flask backend and provides persistent disk storage for 
    DATABASE_FILE=/data/study_buddy.db
    SECRET_KEY=generate_a_random_32_byte_hex_string
    FRONTEND_URL=https://your-studybuddy.vercel.app,http://localhost:5173
-   DEFAULT_MODEL=gemini
-   GEMINI_API_KEY=your_gemini_api_key
-   NVIDIA_API_KEY=your_nvidia_or_openrouter_key
+   DEFAULT_MODEL=gemma
+   OPENROUTER_API_KEY=your_openrouter_api_key
+   OPENROUTER_MODEL=google/gemma-4-26b-a4b-it
+   NVIDIA_API_KEY=your_nvidia_api_key
    GLM_API_KEY=your_glm_or_openrouter_key
    # Choose one of the Firebase Admin options below:
    FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}

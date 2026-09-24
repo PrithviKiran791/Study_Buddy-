@@ -34,14 +34,14 @@ def get_db_connection():
     return conn
 
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-GLM_API_KEY = os.getenv("GLM_API_KEY") or OPENROUTER_API_KEY
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "nemotron").lower()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it").strip()
+OPENROUTER_TIMEOUT = int(os.getenv("OPENROUTER_TIMEOUT", "60"))
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "").strip()
+GLM_API_KEY = (os.getenv("GLM_API_KEY") or OPENROUTER_API_KEY).strip()
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemma").lower()
 
-# Optional model overrides
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# Model options
 NVIDIA_MODEL = os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3.5-lightning:free")
 GLM_MODEL = os.getenv("GLM_MODEL", "z-ai/glm-5.2:free")
 GLM_VISION_MODEL = os.getenv("GLM_VISION_MODEL", "z-ai/glm-5.2:free")
@@ -61,7 +61,8 @@ def get_provider_status() -> dict:
     """Summarize which providers have keys configured."""
     return {
         "default_model": DEFAULT_MODEL,
-        "gemini": {"configured": is_valid_api_key(GEMINI_API_KEY), "model": GEMINI_MODEL},
+        "gemma": {"configured": is_valid_api_key(OPENROUTER_API_KEY), "model": OPENROUTER_MODEL},
         "nemotron": {"configured": is_valid_api_key(NVIDIA_API_KEY), "model": NVIDIA_MODEL},
         "glm": {"configured": is_valid_api_key(GLM_API_KEY), "model": GLM_MODEL},
     }
+

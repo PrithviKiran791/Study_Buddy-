@@ -28,7 +28,6 @@ pip install -r requirements.txt
 This will install:
 - Flask (web framework)
 - Flask-CORS (CORS support)
-- Google Generative AI (Gemini)
 - Transformers (HuggingFace)
 - PyMuPDF (PDF processing)
 - FAISS (vector database)
@@ -49,16 +48,17 @@ cp .env.example .env
 Edit `.env` and add your API keys:
 
 ```env
-GEMINI_API_KEY=your_actual_api_key_here
+OPENROUTER_API_KEY=your_actual_openrouter_api_key_here
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it
 SECRET_KEY=any_random_string_here
 ```
 
-### Get Gemini API Key
+### Get OpenRouter API Key
 
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key and paste it in your `.env` file
+1. Visit [OpenRouter Keys](https://openrouter.ai/settings/keys)
+2. Sign in or create an account
+3. Click "Create Key"
+4. Copy the key and paste it in your `.env` file as `OPENROUTER_API_KEY`
 
 ### Start the Backend Server
 
